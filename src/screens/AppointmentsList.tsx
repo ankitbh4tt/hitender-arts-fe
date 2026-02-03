@@ -27,6 +27,7 @@ export const AppointmentsList = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [processingId, setProcessingId] = useState<number | null>(null);
 
   const fetchAppointments = async () => {
     setLoading(true);
@@ -105,24 +106,31 @@ export const AppointmentsList = ({ navigation }: any) => {
   };
 
   const handleCancel = async (appointmentId: number) => {
+    console.log("Trace: handleCancel pressed", appointmentId);
     Alert.alert(
       "Cancel Appointment",
       "Are you sure you want to cancel this appointment?",
       [
-        { text: "No", style: "cancel" },
+        { text: "No", style: "cancel", onPress: () => console.log("Cancel cancelled") },
         {
           text: "Yes",
           style: "destructive",
           onPress: async () => {
+             console.log("Trace: Confirm cancel pressed");
             try {
+              setProcessingId(appointmentId);
               await AppointmentsApi.cancelAppointment(appointmentId);
+              console.log("Trace: Cancel success");
               Alert.alert("Success", "Appointment cancelled");
               fetchAppointments();
             } catch (error: any) {
+              console.error("Trace: Cancel error", error);
               Alert.alert(
                 "Error",
                 error.message || "Failed to cancel appointment"
               );
+            } finally {
+              setProcessingId(null);
             }
           },
         },
@@ -131,6 +139,7 @@ export const AppointmentsList = ({ navigation }: any) => {
   };
 
   const handleNoShow = async (appointmentId: number) => {
+    console.log("Trace: handleNoShow pressed", appointmentId);
     Alert.alert("Mark No-Show", "Mark this appointment as No-Show?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -138,15 +147,44 @@ export const AppointmentsList = ({ navigation }: any) => {
         style: "destructive",
         onPress: async () => {
           try {
+            setProcessingId(appointmentId);
             await AppointmentsApi.markNoShow(appointmentId);
             Alert.alert("Success", "Marked as no-show");
             fetchAppointments();
           } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to mark no-show");
+             Alert.alert("Error", error.message || "Failed to mark no-show");
+          } finally {
+            setProcessingId(null);
           }
         },
       },
     ]);
+  };
+
+
+  const handleComplete = async (appointmentId: number) => {
+    Alert.alert(
+      "Complete Appointment",
+      "Mark this appointment as completed?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            try {
+              setProcessingId(appointmentId);
+              await AppointmentsApi.completeAppointment(appointmentId);
+              Alert.alert("Success", "Appointment marked as completed");
+              fetchAppointments();
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to complete appointment");
+            } finally {
+              setProcessingId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderAppointmentCard = ({ item }: { item: Appointment }) => {
@@ -210,27 +248,43 @@ export const AppointmentsList = ({ navigation }: any) => {
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleReschedule(item)}
+              disabled={processingId !== null}
             >
               <Ionicons
                 name="calendar-outline"
                 size={18}
-                color={COLORS.primary}
+                color={processingId !== null ? COLORS.textLight : COLORS.primary}
               />
-              <Typography variant="caption" color={COLORS.primary}>
+              <Typography variant="caption" color={processingId !== null ? COLORS.textLight : COLORS.primary}>
                 Reschedule
               </Typography>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
+              onPress={() => handleComplete(item.id)}
+              disabled={processingId === item.id}
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color={processingId === item.id ? COLORS.textLight : COLORS.success}
+              />
+              <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.success}>
+                {processingId === item.id ? "..." : "Complete"}
+              </Typography>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={() => handleCancel(item.id)}
+              disabled={processingId === item.id}
             >
               <Ionicons
                 name="close-circle-outline"
                 size={18}
-                color={COLORS.error}
+                color={processingId === item.id ? COLORS.textLight : COLORS.error}
               />
-              <Typography variant="caption" color={COLORS.error}>
-                Cancel
+              <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.error}>
+                {processingId === item.id ? "..." : "Cancel"}
               </Typography>
             </TouchableOpacity>
           </View>
@@ -240,15 +294,30 @@ export const AppointmentsList = ({ navigation }: any) => {
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.actionButton}
+              onPress={() => handleComplete(item.id)}
+              disabled={processingId === item.id}
+            >
+               <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color={processingId === item.id ? COLORS.textLight : COLORS.success}
+              />
+               <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.success}>
+                 {processingId === item.id ? "..." : "Complete"}
+              </Typography>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={() => handleNoShow(item.id)}
+              disabled={processingId === item.id}
             >
               <Ionicons
                 name="alert-circle-outline"
                 size={18}
-                color={COLORS.error}
+                color={processingId === item.id ? COLORS.textLight : COLORS.error}
               />
-              <Typography variant="caption" color={COLORS.error}>
-                Mark No-Show
+              <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.error}>
+                {processingId === item.id ? "..." : "Mark No-Show"}
               </Typography>
             </TouchableOpacity>
           </View>

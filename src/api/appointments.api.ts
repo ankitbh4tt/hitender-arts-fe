@@ -50,4 +50,11 @@ export const AppointmentsApi = {
     );
     return response.data!;
   },
+
+  completeAppointment: async (id: number): Promise<Appointment> => {
+    const response = await client.patch<any, ApiResponse<Appointment>>(
+      `/appointments/complete/${id}`
+    );
+    return response.data!;
+  },
 };
