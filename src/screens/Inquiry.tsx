@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -11,6 +11,8 @@ import { COLORS, SPACING } from "../constants/theme";
 import { useConfigStore } from "../config/store";
 import { InquiriesApi } from "../api/inquiries.api";
 import { ClientsApi } from "../api/clients.api";
+import Toast from "react-native-toast-message";
+import { Client, Inquiry as InquiryType, TattooSize, ReferenceType } from "../api/types";
 import {
   ScreenContainer,
   Typography,
@@ -22,80 +24,149 @@ import {
 
 export const Inquiry = ({ route, navigation }: any) => {
   const params = route.params || {};
-  const prefillClient = params.client;
+  const prefillClient: Client | undefined = params.client;
+  const latestInquiry: InquiryType | undefined = params.latestInquiry;
 
-  const [client, setClient] = useState(prefillClient);
+  const [client, setClient] = useState<Client | undefined>(prefillClient);
   const [mobile, setMobile] = useState(prefillClient?.mobile || "");
-  const { config } = useConfigStore();
+  const { config, isLoading } = useConfigStore();
 
-  const latestInquiry = client ? params.latestInquiry : null;
-
-  const [tattooSize, setTattooSize] = useState<any>(
-    latestInquiry?.tattooSizeId
-      ? config?.tattooSizes?.find(
-          (s: any) => s.id === latestInquiry.tattooSizeId
-        )
-      : null
-  );
-  const [referenceType, setReferenceType] = useState<any>(
-    latestInquiry?.referenceTypeId
-      ? config?.referenceTypes?.find(
-          (r: any) => r.id === latestInquiry.referenceTypeId
-        )
-      : null
-  );
+  const [tattooSize, setTattooSize] = useState<TattooSize | null>(null);
+  const [referenceType, setReferenceType] = useState<ReferenceType | null>(null);
   const [intent, setIntent] = useState(latestInquiry?.intent || "");
   const [remark, setRemark] = useState(latestInquiry?.remark || "");
 
-  const handleResolveMobile = () => {
+  useEffect(() => {
+    if (config) {
+      if (latestInquiry?.tattooSizeId && !tattooSize) {
+        const found = config.tattooSizes.find(
+          (s) => s.id === latestInquiry.tattooSizeId
+        );
+        if (found) setTattooSize(found);
+      }
+      if (latestInquiry?.referenceTypeId && !referenceType) {
+        const found = config.referenceTypes.find(
+          (r) => r.id === latestInquiry.referenceTypeId
+        );
+        if (found) setReferenceType(found);
+      }
+    }
+  }, [config, latestInquiry]);
+
+  // Map reference types to include 'label' property for SearchableSelect
+  const referenceTypeOptions =
+    config?.referenceTypes?.map((r) => ({
+      id: r.id,
+      label: r.name, // Use 'name' as 'label'
+      original: r, // Keep reference to original object
+    })) || [];
+
+  const handleResolveMobile = async () => {
     if (mobile && mobile.length >= 10) {
-      const response = ClientsApi.resolveClientByMobile(mobile);
-      setClient(response.client);
+      try {
+        const response = await ClientsApi.resolveClientByMobile(mobile);
+        setClient(response.client);
+        
+        // Auto-fill from latest inquiry if available
+        if (response.latestInquiry) {
+           const latest = response.latestInquiry;
+           setIntent(latest.intent || "");
+           setRemark(latest.remark || "");
+           
+           if (latest.tattooSizeId && config) {
+             const foundSize = config.tattooSizes.find(s => s.id === latest.tattooSizeId);
+             if (foundSize) setTattooSize(foundSize);
+           }
+           
+           if (latest.referenceTypeId && config) {
+             const foundRef = config.referenceTypes.find(r => r.id === latest.referenceTypeId);
+             if (foundRef) setReferenceType(foundRef);
+           }
+        }
+      } catch (error) {
+        console.error("Failed to resolve client", error);
+        // Alert handled globally
+      }
     }
   };
 
-  const handleSaveInquiry = () => {
+  const handleSaveInquiry = async () => {
     if (!client) {
-      handleResolveMobile();
-      if (!client) return;
+      await handleResolveMobile();
+      if (!client) {
+         Toast.show({
+           type: "error",
+           text1: "Error",
+           text2: "Please resolve a client first",
+         });
+         return;
+      }
     }
 
     const payload = {
-      clientId: client.id,
+      clientId: client!.id,
       tattooSizeId: tattooSize?.id,
       referenceTypeId: referenceType?.id,
       intent,
       remark,
     };
 
-    InquiriesApi.createInquiry(payload);
-    navigation.goBack();
+    try {
+      await InquiriesApi.createInquiry(payload);
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Inquiry saved successfully",
+      });
+      navigation.navigate("ClientsTab", {
+        screen: "ClientDetail",
+        params: { client },
+      });
+    } catch (error) {
+       // Alert handled globally
+    }
   };
 
-  const handleSaveAndSetAppointment = () => {
+  const handleSaveAndSetAppointment = async () => {
     if (!client) {
-      handleResolveMobile();
-      if (!client) return;
+      await handleResolveMobile();
+      if (!client) {
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Please resolve a client first",
+          });
+          return;
+      }
     }
 
     const payload = {
-      clientId: client.id,
+      clientId: client!.id,
       tattooSizeId: tattooSize?.id,
       referenceTypeId: referenceType?.id,
       intent,
       remark,
     };
 
-    const response = InquiriesApi.createInquiry(payload);
+    try {
+      const response = await InquiriesApi.createInquiry(payload);
 
-    // Navigate to Appointments tab -> ScheduleAppointment
-    navigation.navigate("AppointmentsTab", {
-      screen: "ScheduleAppointment",
-      params: {
-        inquiryId: response.id,
-        client,
-      },
-    });
+      // Navigate to Appointments tab -> ScheduleAppointment
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Inquiry saved. Proceeding to appointment.",
+      });
+      navigation.navigate("AppointmentsTab", {
+        screen: "ScheduleAppointment",
+        params: {
+          inquiryId: response.id,
+          client,
+        },
+      });
+    } catch (error) {
+       // Alert handled globally
+    }
   };
 
   return (
@@ -163,15 +234,19 @@ export const Inquiry = ({ route, navigation }: any) => {
             label="Tattoo Size"
             value={tattooSize}
             options={config?.tattooSizes || []}
-            onSelect={setTattooSize}
+            onSelect={(item) => setTattooSize(item as TattooSize)}
             placeholder="Select tattoo size"
           />
 
           <SearchableSelect
             label="Reference Type"
-            value={referenceType}
-            options={config?.referenceTypes || []}
-            onSelect={setReferenceType}
+            value={
+              referenceType
+                ? { id: referenceType.id, label: referenceType.name }
+                : null
+            }
+            options={referenceTypeOptions}
+            onSelect={(item: any) => setReferenceType(item.original)}
             placeholder="How did you hear about us?"
           />
 

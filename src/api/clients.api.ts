@@ -1,13 +1,30 @@
-import { DataStore } from "../data/store";
+import { client } from "./client";
+import { ApiResponse, Client, Inquiry } from "./types";
 
 export const ClientsApi = {
-  resolveClientByMobile: (mobile: string) => {
-    const client = DataStore.getClientByMobile(mobile);
-    const latestInquiry = client ? DataStore.getLatestInquiry(client.id) : null;
+  resolveClientByMobile: async (
+    mobile: string
+  ): Promise<{ client: Client; latestInquiry: Inquiry | null }> => {
+    const response = await client.post<
+      any,
+      ApiResponse<{ client: Client; latestInquiry: Inquiry | null }>
+    >("/clients", { mobile });
+    return response.data || { client: {} as Client, latestInquiry: null };
+  },
 
-    return {
-      client,
-      latestInquiry,
-    };
+  getClientByMobile: async (mobile: string): Promise<Client | null> => {
+    try {
+      const response = await client.get<any, ApiResponse<Client>>(
+        `/clients/mobile/${mobile}`
+      );
+      return response.data || null;
+    } catch (error) {
+      return null;
+    }
+  },
+
+  getAllClients: async (): Promise<Client[]> => {
+    const response = await client.get<any, ApiResponse<Client[]>>("/clients/all");
+    return response.data || [];
   },
 };

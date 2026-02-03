@@ -1,16 +1,23 @@
 import React from "react";
-import { View, TextInput, TextInputProps, StyleSheet } from "react-native";
+import { View, TextInput, TextInputProps, StyleSheet, ViewStyle } from "react-native";
 import { COLORS, SPACING } from "../constants/theme";
 import { Typography } from "./Typography";
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
+  containerStyle?: ViewStyle;
 }
 
-export const Input = ({ label, error, style, ...props }: InputProps) => {
+export const Input = ({
+  label,
+  error,
+  style,
+  containerStyle,
+  ...props
+}: InputProps) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {label && (
         <Typography variant="label" style={styles.label}>
           {label}

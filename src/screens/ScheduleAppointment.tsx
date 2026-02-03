@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING } from "../constants/theme";
+import Toast from "react-native-toast-message";
 import { AppointmentsApi } from "../api/appointments.api";
 import {
   ScreenContainer,
@@ -19,7 +20,7 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
   const [appointmentTime, setAppointmentTime] = useState(new Date());
   const [tattooDetail, setTattooDetail] = useState("");
 
-  const handleConfirmAppointment = () => {
+  const handleConfirmAppointment = async () => {
     // Combine date and time into a single ISO datetime
     const combinedDateTime = new Date(
       appointmentDate.getFullYear(),
@@ -36,8 +37,20 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
       tattooDetail: tattooDetail || undefined,
     };
 
-    AppointmentsApi.createAppointment(payload);
-    navigation.navigate("AppointmentsList");
+    try {
+        await AppointmentsApi.createAppointment(payload);
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: "Appointment scheduled successfully",
+        });
+        navigation.navigate("ClientsTab", {
+            screen: "ClientDetail",
+            params: { client },
+        });
+    } catch (error) {
+        // Error handled globally
+    }
   };
 
   return (

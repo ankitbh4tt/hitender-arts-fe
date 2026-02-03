@@ -1,75 +1,245 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
+  Alert,
+  Linking,
+  Platform,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Typography, Card } from "../components";
-import { COLORS, SPACING } from "../constants/theme";
-import { DataStore, Client, Inquiry, Appointment } from "../data/store";
+import { COLORS, SPACING, SHADOWS } from "../constants/theme";
+import { Client, Inquiry, Appointment } from "../api/types";
+import { InquiriesApi } from "../api/inquiries.api";
+import { AppointmentsApi } from "../api/appointments.api";
+import {
+  ScreenContainer,
+  Typography,
+  Card,
+  Button,
+  Input,
+} from "../components";
 
-interface ClientDetailProps {
-  route: any;
-  navigation: any;
-}
-
-export const ClientDetail = ({ route, navigation }: ClientDetailProps) => {
-  const { client } = route.params;
+export const ClientDetail = ({ route, navigation }: any) => {
+  const { client }: { client: Client } = route.params;
   const [activeTab, setActiveTab] = useState<"inquiries" | "appointments">(
     "inquiries"
   );
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [clientName, setClientName] = useState(client.name);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [clientName, setClientName] = useState(client.name || "");
 
-  const inquiries = DataStore.getInquiriesByClient(client.id);
-  const appointments = DataStore.appointments.filter(
-    (a) => a.clientId === client.id
+  useFocusEffect(
+    useCallback(() => {
+      fetchClientData();
+    }, [])
   );
 
-  const handleSaveName = () => {
-    DataStore.updateClient(client.id, { name: clientName });
-    setIsEditingName(false);
+  const fetchClientData = async () => {
+    try {
+      if (!refreshing) setLoading(true);
+      const [inquiriesData, appointmentsData] = await Promise.all([
+        InquiriesApi.getInquiriesByClient(client.id),
+        AppointmentsApi.getAppointmentsByClient(client.id),
+      ]);
+      setInquiries(inquiriesData);
+      setAppointments(appointmentsData);
+    } catch (error) {
+      console.error("Failed to fetch client history", error);
+      // Alert handled globally
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const handleAddInquiry = () => {
-    navigation.navigate("Inquiry", { client });
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchClientData();
   };
+
+  const handleCall = () => {
+    let phoneNumber = "";
+    if (Platform.OS === "android") {
+      phoneNumber = `tel:${client.mobile}`;
+    } else {
+      phoneNumber = `telprompt:${client.mobile}`;
+    }
+    Linking.openURL(phoneNumber);
+  };
+
+  const handleWhatsApp = () => {
+    let phoneNumber = "91" + client.mobile;
+    let url = `whatsapp://send?phone=${phoneNumber}`;
+    Linking.openURL(url);
+  };
+
+  const handeSaveName = () => {
+    // TODO: Implement API to update client
+    setEditingName(false);
+    Alert.alert("Info", "Update client not implemented yet");
+  };
+
+  const renderInquiryItem = (item: Inquiry) => (
+    <Card key={item.id} style={styles.historyCard}>
+      <View style={styles.historyHeader}>
+        <Typography variant="h3">
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Typography>
+        <View style={styles.tag}>
+          <Typography variant="caption" color={COLORS.primary}>
+            {item.tattooSize?.label || "Unknown Size"}
+          </Typography>
+        </View>
+      </View>
+      <Typography variant="body" style={styles.historyBody}>
+        {item.intent || "No details provided"}
+      </Typography>
+      {item.referenceType && (
+        <View style={styles.metaRow}>
+          <Ionicons
+            name="pricetag-outline"
+            size={12}
+            color={COLORS.textLight}
+          />
+          <Typography variant="caption" color={COLORS.textLight}>
+            Ref: {item.referenceType.name}
+          </Typography>
+        </View>
+      )}
+      
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          style={styles.scheduleBtn}
+          onPress={() => {
+            navigation.navigate("AppointmentsTab", {
+              screen: "ScheduleAppointment",
+              params: {
+                inquiryId: item.id,
+                client: client,
+              },
+            });
+          }}
+        >
+          <Ionicons name="calendar" size={16} color={COLORS.white} />
+          <Typography variant="caption" color={COLORS.white}>
+            Schedule Appointment
+          </Typography>
+        </TouchableOpacity>
+      </View>
+    </Card>
+  );
+
+  // ... rest of component
+
+  const renderAppointmentItem = (item: Appointment) => (
+    <Card key={item.id} style={styles.historyCard}>
+      <View style={styles.historyHeader}>
+        <Typography variant="h3">
+          {new Date(item.appointmentAt).toLocaleDateString()}
+        </Typography>
+        <View
+          style={[
+            styles.tag,
+            {
+              backgroundColor:
+                item.appointmentStatus?.code === "SCHEDULED"
+                  ? COLORS.success + "20"
+                  : COLORS.border,
+            },
+          ]}
+        >
+          <Typography
+            variant="caption"
+            color={
+              item.appointmentStatus?.code === "SCHEDULED"
+                ? COLORS.success
+                : COLORS.textLight
+            }
+          >
+            {item.appointmentStatus?.label}
+          </Typography>
+        </View>
+      </View>
+      <Typography variant="caption" style={styles.timeLabel}>
+        {new Date(item.appointmentAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </Typography>
+      {item.tattooDetail && (
+        <Typography variant="body" style={styles.historyBody}>
+          {item.tattooDetail}
+        </Typography>
+      )}
+    </Card>
+  );
 
   return (
     <ScreenContainer>
       <View style={styles.header}>
-        <View style={styles.headerContent}>
-          {isEditingName ? (
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
+        <Typography variant="h3">Client Details</Typography>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.profileSection}>
+          <View style={styles.avatar}>
+            <Typography variant="h1" color={COLORS.white}>
+              {(client.name || "U")[0].toUpperCase()}
+            </Typography>
+          </View>
+          {editingName ? (
             <View style={styles.editNameRow}>
-              <TextInput
-                style={styles.nameInput}
+              <Input
                 value={clientName}
                 onChangeText={setClientName}
-                autoFocus
+                placeholder="Client Name"
+                containerStyle={{ flex: 1, marginBottom: 0 }}
               />
-              <TouchableOpacity onPress={handleSaveName}>
+              <TouchableOpacity
+                onPress={handeSaveName}
+                style={styles.saveIconBtn}
+              >
                 <Ionicons
                   name="checkmark-circle"
-                  size={28}
-                  color={COLORS.secondary}
+                  size={32}
+                  color={COLORS.success}
                 />
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.nameRow}>
-              <Typography variant="h2">{clientName}</Typography>
-              <TouchableOpacity onPress={() => setIsEditingName(true)}>
-                <Ionicons
-                  name="pencil-outline"
-                  size={20}
-                  color={COLORS.textLight}
-                />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={() => setEditingName(true)}
+              style={styles.nameRow}
+            >
+              <Typography variant="h2">{clientName || "Unknown"}</Typography>
+              <Ionicons
+                name="pencil-outline"
+                size={16}
+                color={COLORS.textLight}
+              />
+            </TouchableOpacity>
           )}
+
           <View style={styles.mobileRow}>
             <Ionicons name="call-outline" size={16} color={COLORS.textLight} />
             <Typography
@@ -80,113 +250,105 @@ export const ClientDetail = ({ route, navigation }: ClientDetailProps) => {
               {client.mobile}
             </Typography>
           </View>
-        </View>
-      </View>
 
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "inquiries" && styles.activeTab]}
-          onPress={() => setActiveTab("inquiries")}
-        >
-          <Typography
-            variant="body"
-            color={
-              activeTab === "inquiries" ? COLORS.secondary : COLORS.textLight
-            }
-          >
-            Inquiries ({inquiries.length})
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "appointments" && styles.activeTab]}
-          onPress={() => setActiveTab("appointments")}
-        >
-          <Typography
-            variant="body"
-            color={
-              activeTab === "appointments" ? COLORS.secondary : COLORS.textLight
-            }
-          >
-            Appointments ({appointments.length})
-          </Typography>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content}>
-        {activeTab === "inquiries" ? (
-          inquiries.length > 0 ? (
-            inquiries.map((inquiry) => (
-              <Card key={inquiry.id} style={styles.itemCard}>
-                <Typography variant="h3">{inquiry.intent}</Typography>
-                {inquiry.remark && (
-                  <Typography
-                    variant="caption"
-                    color={COLORS.textLight}
-                    style={styles.remark}
-                  >
-                    {inquiry.remark}
-                  </Typography>
-                )}
-                <Typography
-                  variant="caption"
-                  color={COLORS.textLight}
-                  style={styles.date}
-                >
-                  {new Date(inquiry.createdAt).toLocaleDateString()}
-                </Typography>
-              </Card>
-            ))
-          ) : (
-            <View style={styles.emptyState}>
-              <Typography variant="body" color={COLORS.textLight}>
-                No inquiries yet
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: COLORS.success }]}
+              onPress={handleCall}
+            >
+              <Ionicons name="call" size={20} color={COLORS.white} />
+              <Typography variant="caption" color={COLORS.white}>
+                Call
               </Typography>
-            </View>
-          )
-        ) : appointments.length > 0 ? (
-          appointments.map((appointment) => (
-            <Card key={appointment.id} style={styles.itemCard}>
-              <View style={styles.appointmentHeader}>
-                <Typography variant="h3">
-                  {new Date(appointment.appointmentAt).toLocaleDateString()}
-                </Typography>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    { backgroundColor: COLORS.secondary },
-                  ]}
-                >
-                  <Typography variant="caption" color={COLORS.white}>
-                    {appointment.appointmentStatus}
-                  </Typography>
-                </View>
-              </View>
-              <Typography variant="body" style={styles.time}>
-                {new Date(appointment.appointmentAt).toLocaleTimeString(
-                  "en-IN",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
+              onPress={handleWhatsApp}
+            >
+              <Ionicons name="logo-whatsapp" size={20} color={COLORS.white} />
+              <Typography variant="caption" color={COLORS.white}>
+                WhatsApp
               </Typography>
-              {appointment.tattooDetail && (
-                <Typography variant="caption" color={COLORS.textLight}>
-                  {appointment.tattooDetail}
-                </Typography>
-              )}
-            </Card>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Typography variant="body" color={COLORS.textLight}>
-              No appointments yet
-            </Typography>
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
+
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "inquiries" && styles.activeTab]}
+            onPress={() => setActiveTab("inquiries")}
+          >
+            <Typography
+              variant="body"
+              color={
+                activeTab === "inquiries" ? COLORS.secondary : COLORS.textLight
+              }
+            >
+              Inquiries ({inquiries.length})
+            </Typography>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === "appointments" && styles.activeTab,
+            ]}
+            onPress={() => setActiveTab("appointments")}
+          >
+            <Typography
+              variant="body"
+              color={
+                activeTab === "appointments"
+                  ? COLORS.secondary
+                  : COLORS.textLight
+              }
+            >
+              Appointments ({appointments.length})
+            </Typography>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.listContainer}>
+          {loading && !refreshing ? (
+            <ActivityIndicator size="large" color={COLORS.secondary} />
+          ) : activeTab === "inquiries" ? (
+            inquiries.length > 0 ? (
+              inquiries.map((item) => renderInquiryItem(item))
+            ) : (
+              <Typography
+                variant="body"
+                align="center"
+                color={COLORS.textLight}
+                style={{ marginTop: 20 }}
+              >
+                No inquiries found
+              </Typography>
+            )
+          ) : appointments.length > 0 ? (
+            appointments.map((item) => renderAppointmentItem(item))
+          ) : (
+            <Typography
+              variant="body"
+              align="center"
+              color={COLORS.textLight}
+              style={{ marginTop: 20 }}
+            >
+              No appointments found
+            </Typography>
+          )}
+        </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={handleAddInquiry}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          // Pass the latest inquiry (first in the list since they should be ordered by date desc)
+          const latestInquiry = inquiries.length > 0 ? inquiries[0] : undefined;
+          navigation.navigate("InquiriesTab", {
+            screen: "Inquiry",
+            params: { client, latestInquiry }
+          });
+        }}
+      >
         <Ionicons name="add" size={28} color={COLORS.white} />
       </TouchableOpacity>
     </ScreenContainer>
@@ -195,36 +357,66 @@ export const ClientDetail = ({ route, navigation }: ClientDetailProps) => {
 
 const styles = StyleSheet.create({
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: SPACING.medium,
   },
-  headerContent: {
-    gap: SPACING.tiny,
+  backBtn: {
+    padding: SPACING.tiny,
+  },
+  scrollContent: {
+    paddingBottom: 80,
+  },
+  profileSection: {
+    alignItems: "center",
+    marginBottom: SPACING.large,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.medium,
+    ...SHADOWS.light,
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.small,
+    marginBottom: SPACING.tiny,
   },
   editNameRow: {
     flexDirection: "row",
     alignItems: "center",
+    width: "80%",
     gap: SPACING.small,
   },
-  nameInput: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: "bold",
-    color: COLORS.text,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.secondary,
-    paddingVertical: SPACING.tiny,
+  saveIconBtn: {
+    padding: SPACING.tiny,
   },
   mobileRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: SPACING.medium,
   },
   mobile: {
     marginLeft: SPACING.tiny,
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: SPACING.medium,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.medium,
+    borderRadius: 20,
+    gap: SPACING.tiny,
+    ...SHADOWS.light,
   },
   tabs: {
     flexDirection: "row",
@@ -241,35 +433,56 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: COLORS.secondary,
   },
-  content: {
+  listContainer: {
     flex: 1,
   },
-  itemCard: {
+  historyCard: {
     marginBottom: SPACING.medium,
+    padding: SPACING.medium,
   },
-  remark: {
-    marginTop: SPACING.tiny,
-  },
-  date: {
-    marginTop: SPACING.tiny,
-  },
-  appointmentHeader: {
+  historyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: SPACING.tiny,
   },
-  statusBadge: {
+  tag: {
+    backgroundColor: COLORS.background,
     paddingHorizontal: SPACING.small,
-    paddingVertical: 4,
+    paddingVertical: 2,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  time: {
+  historyBody: {
+    marginBottom: SPACING.small,
+    color: COLORS.text,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  timeLabel: {
+    color: COLORS.textLight,
     marginBottom: SPACING.tiny,
   },
-  emptyState: {
-    padding: SPACING.xlarge,
+  cardActions: {
+    marginTop: SPACING.medium,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: SPACING.small,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  scheduleBtn: {
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 6,
+    paddingHorizontal: SPACING.medium,
+    borderRadius: 4,
+    gap: SPACING.tiny,
   },
   fab: {
     position: "absolute",
@@ -279,12 +492,8 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: COLORS.secondary,
-    justifyContent: "center",
     alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    justifyContent: "center",
+    ...SHADOWS.medium,
   },
 });

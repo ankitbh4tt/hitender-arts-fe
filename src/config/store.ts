@@ -1,8 +1,19 @@
 import { create } from "zustand";
 import { ConfigApi } from "../api/config.api";
+import {
+  TattooSize,
+  ReferenceType,
+  AppointmentStatus,
+  ClientStatus,
+} from "../api/types";
 
 interface ConfigState {
-  config: Record<string, any> | null;
+  config: {
+    tattooSizes: TattooSize[];
+    referenceTypes: ReferenceType[];
+    appointmentStatuses: AppointmentStatus[];
+    clientStatuses: ClientStatus[];
+  } | null;
   isLoading: boolean;
   error: string | null;
   fetchConfig: () => Promise<void>;

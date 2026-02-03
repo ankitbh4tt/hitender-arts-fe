@@ -27,10 +27,14 @@ const ClientsNavigator = () => (
 );
 
 // Inquiries Tab Stack
+// Inquiries Tab Stack
 const InquiriesNavigator = () => (
   <InquiriesStack.Navigator screenOptions={{ headerShown: false }}>
-    <InquiriesStack.Screen name="InquiriesList" component={InquiriesList} />
-    <InquiriesStack.Screen name="Inquiry" component={Inquiry} />
+    <InquiriesStack.Screen
+      name="Inquiry"
+      component={Inquiry}
+      initialParams={{ client: null }} // Ensure we can open it without params
+    />
   </InquiriesStack.Navigator>
 );
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useConfigStore } from "../config/store";
 import { COLORS, SPACING } from "../constants/theme";
@@ -8,25 +8,35 @@ import { ScreenContainer, Typography, Input, Button } from "../components";
 
 export const MobileNumberEntry = ({ navigation }: any) => {
   const [mobile, setMobile] = useState("");
+  const [loading, setLoading] = useState(false);
   const { config } = useConfigStore();
 
-  const verifyIdentity = () => {
+  const verifyIdentity = async () => {
     if (!mobile || mobile.length < 10) {
       Alert.alert("Validation", "Please enter a valid mobile number");
       return;
     }
 
-    // Synchronous API call
-    const response = ClientsApi.resolveClientByMobile(mobile);
+    setLoading(true);
+    try {
+      const response = await ClientsApi.resolveClientByMobile(mobile);
 
-    // Replace with CRM tabs and navigate to Inquiry
-    navigation.replace("CRMRoot", {
-      screen: "InquiriesTab",
-      params: {
-        screen: "Inquiry",
-        params: response,
-      },
-    });
+      // Navigate to main app
+      navigation.replace("CRMRoot", {
+        screen: "InquiriesTab",
+        params: {
+          screen: "Inquiry",
+          params: response,
+        },
+      });
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.message || "Failed to verify. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,11 +52,9 @@ export const MobileNumberEntry = ({ navigation }: any) => {
       </View>
 
       <View style={styles.formArea}>
-        {config?.labels?.welcome && (
-          <Typography variant="body" align="center" style={styles.greeting}>
-            {config.labels.welcome}
-          </Typography>
-        )}
+        <Typography variant="body" align="center" style={styles.greeting}>
+          Welcome to HitenderArts Studio
+        </Typography>
 
         <Input
           label="Mobile Number"
@@ -55,9 +63,14 @@ export const MobileNumberEntry = ({ navigation }: any) => {
           placeholder="Enter 10-digit mobile number"
           keyboardType="phone-pad"
           maxLength={10}
+          editable={!loading}
         />
 
-        <Button title="Verify Identity" onPress={verifyIdentity} />
+        {loading ? (
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        ) : (
+          <Button title="Verify Identity" onPress={verifyIdentity} />
+        )}
       </View>
     </ScreenContainer>
   );
