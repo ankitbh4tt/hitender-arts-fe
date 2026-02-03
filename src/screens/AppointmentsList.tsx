@@ -19,19 +19,7 @@ import {
   Button,
   DateTimePickerComponent,
 } from "../components";
-
-interface Appointment {
-  id: number;
-  client: {
-    id: number;
-    name: string;
-    mobile: string;
-  };
-  appointmentAt: string;
-  appointmentStatus: string;
-  tattooDetail?: string;
-  inquiryId: number;
-}
+import { Appointment } from "../api/types";
 
 export const AppointmentsList = ({ navigation }: any) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -40,11 +28,18 @@ export const AppointmentsList = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAppointments = () => {
+  const fetchAppointments = async () => {
     setLoading(true);
-    // Get all appointments instead of filtering by date
-    setAppointments(DataStore.appointments);
-    setLoading(false);
+    try {
+      // Fetch upcoming appointments from API
+      const data = await AppointmentsApi.getUpcomingAppointments();
+      setAppointments(data);
+    } catch (error) {
+      console.log("Error fetching appointments:", error);
+      Alert.alert("Error", "Failed to fetch appointments");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onRefresh = () => {
@@ -54,31 +49,46 @@ export const AppointmentsList = ({ navigation }: any) => {
   };
 
   useEffect(() => {
-    fetchAppointments();
-  }, []);
+    const unsubscribe = navigation.addListener("focus", () => {
+      fetchAppointments();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const filteredAppointments = useMemo(() => {
-    if (!searchQuery) return appointments;
+    let filtered = appointments;
 
-    const query = searchQuery.toLowerCase();
-    return appointments.filter(
-      (apt) =>
-        apt.client.name.toLowerCase().includes(query) ||
-        apt.client.mobile.includes(query)
-    );
-  }, [appointments, searchQuery]);
+    // Filter by selected date
+    filtered = filtered.filter((apt) => {
+      const aptDate = new Date(apt.appointmentAt);
+      return (
+        aptDate.getDate() === selectedDate.getDate() &&
+        aptDate.getMonth() === selectedDate.getMonth() &&
+        aptDate.getFullYear() === selectedDate.getFullYear()
+      );
+    });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "SCHEDULED":
-        return COLORS.secondary;
-      case "COMPLETED":
-        return COLORS.success;
-      case "CANCELLED":
-        return COLORS.error;
-      default:
-        return COLORS.textLight;
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (apt) =>
+          (apt.client?.name || "").toLowerCase().includes(query) ||
+          (apt.client?.mobile || "").includes(query)
+      );
     }
+    return filtered;
+  }, [appointments, searchQuery, selectedDate]);
+
+  const getAppointmentStatusColor = (status: string | undefined) => {
+         // ... implementation same as before but safe access ...
+         if(!status) return COLORS.textLight;
+         switch (status) {
+            case "SCHEDULED": return COLORS.secondary;
+            case "COMPLETED": return COLORS.success;
+            case "CANCELLED": return COLORS.error;
+            default: return COLORS.textLight;
+         }
   };
 
   const formatTime = (isoString: string) => {
@@ -141,15 +151,16 @@ export const AppointmentsList = ({ navigation }: any) => {
 
   const renderAppointmentCard = ({ item }: { item: Appointment }) => {
     const isPast = new Date(item.appointmentAt) < new Date();
-    const isScheduled = item.appointmentStatus === "SCHEDULED";
-    const isCompleted = item.appointmentStatus === "COMPLETED";
-    const isCancelled = item.appointmentStatus === "CANCELLED";
+    const status = item.appointmentStatus?.code || "UNKNOWN";
+    const isScheduled = status === "SCHEDULED";
+    // const isCompleted = status === "COMPLETED";
+    // const isCancelled = status === "CANCELLED";
 
     return (
-      <Card style={styles.appointmentCard}>
+      <Card key={item.id} style={styles.appointmentCard}>
         <View style={styles.cardHeader}>
           <View style={styles.clientInfo}>
-            <Typography variant="h3">{item.client.name}</Typography>
+            <Typography variant="h3">{item.client?.name || "Unknown Client"}</Typography>
             <View style={styles.mobileRow}>
               <Ionicons
                 name="call-outline"
@@ -157,18 +168,18 @@ export const AppointmentsList = ({ navigation }: any) => {
                 color={COLORS.textLight}
               />
               <Typography variant="caption" style={styles.mobile}>
-                {item.client.mobile}
+                {item.client?.mobile || "No Mobile"}
               </Typography>
             </View>
           </View>
           <View
             style={[
               styles.statusBadge,
-              { backgroundColor: getStatusColor(item.appointmentStatus) },
+              { backgroundColor: getAppointmentStatusColor(status) },
             ]}
           >
             <Typography variant="caption" color={COLORS.white}>
-              {item.appointmentStatus}
+              {item.appointmentStatus?.label || status}
             </Typography>
           </View>
         </View>

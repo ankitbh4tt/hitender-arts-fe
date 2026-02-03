@@ -11,8 +11,12 @@ import {
   DateTimePickerComponent,
 } from "../components";
 
+import { Appointment } from "../api/types";
+
+// ... other imports
+
 export const RescheduleAppointment = ({ route, navigation }: any) => {
-  const { appointment } = route.params || {};
+  const { appointment }: { appointment: Appointment } = route.params || {};
 
   const currentDateTime = new Date(appointment.appointmentAt);
   const [newDate, setNewDate] = useState(currentDateTime);
@@ -44,20 +48,22 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
       ]);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to reschedule appointment");
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
   };
 
   const formatDateTime = (isoString: string) => {
+    // ... same ...
     const date = new Date(isoString);
     return date.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
   };
 
   return (
@@ -66,7 +72,7 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
         <Card style={styles.clientCard}>
           <View style={styles.clientHeader}>
             <View style={styles.clientInfo}>
-              <Typography variant="h3">{appointment.client.name}</Typography>
+              <Typography variant="h3">{appointment.client?.name || "Unknown Client"}</Typography>
               <View style={styles.mobileRow}>
                 <Ionicons
                   name="call-outline"
@@ -78,7 +84,7 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
                   color={COLORS.textLight}
                   style={styles.mobile}
                 >
-                  {appointment.client.mobile}
+                  {appointment.client?.mobile || "No Mobile"}
                 </Typography>
               </View>
             </View>

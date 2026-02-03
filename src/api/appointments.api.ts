@@ -1,27 +1,53 @@
-import { DataStore } from "../data/store";
+import { client } from "./client";
+import { ApiResponse, Appointment } from "./types";
 
 export const AppointmentsApi = {
-  getUpcomingAppointments: (date?: string) => {
-    const selectedDate = date || new Date().toISOString();
-    return DataStore.getAppointmentsByDate(selectedDate);
+  getUpcomingAppointments: async (): Promise<Appointment[]> => {
+    const response = await client.get<any, ApiResponse<Appointment[]>>(
+      "/appointments/upcoming"
+    );
+    return response.data || [];
   },
 
-  createAppointment: (data: any) => {
-    return DataStore.createAppointment(data);
+  getAppointmentsByClient: async (clientId: number): Promise<Appointment[]> => {
+    const response = await client.get<any, ApiResponse<Appointment[]>>(
+      `/appointments/client/${clientId}`
+    );
+    return response.data || [];
   },
 
-  rescheduleAppointment: (id: number, date: string) => {
-    return DataStore.updateAppointment(id, {
-      appointmentAt: date,
-      appointmentStatus: "RESCHEDULED",
-    });
+  createAppointment: async (payload: any): Promise<Appointment> => {
+    const response = await client.post<any, ApiResponse<Appointment>>(
+      "/appointments/new",
+      payload
+    );
+    return response.data!;
   },
 
-  cancelAppointment: (id: number) => {
-    return DataStore.updateAppointment(id, { appointmentStatus: "CANCELLED" });
+  rescheduleAppointment: async (
+    id: number,
+    date: Date
+  ): Promise<Appointment> => {
+    const response = await client.patch<any, ApiResponse<Appointment>>(
+      `/appointments/reschedule/${id}`,
+      {
+        rescheduleTime: date.toISOString(),
+      }
+    );
+    return response.data!;
   },
 
-  markNoShow: (id: number) => {
-    return DataStore.updateAppointment(id, { appointmentStatus: "NO_SHOW" });
+  cancelAppointment: async (id: number): Promise<Appointment> => {
+    const response = await client.patch<any, ApiResponse<Appointment>>(
+      `/appointments/cancel/${id}`
+    );
+    return response.data!;
+  },
+
+  markNoShow: async (id: number): Promise<Appointment> => {
+    const response = await client.patch<any, ApiResponse<Appointment>>(
+      `/appointments/no-show/${id}`
+    );
+    return response.data!;
   },
 };
