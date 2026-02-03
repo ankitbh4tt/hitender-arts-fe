@@ -66,11 +66,12 @@ export const MobileNumberEntry = ({ navigation }: any) => {
           editable={!loading}
         />
 
-        {loading ? (
-          <ActivityIndicator size="large" color={COLORS.primary} />
-        ) : (
-          <Button title="Verify Identity" onPress={verifyIdentity} />
-        )}
+        <Button 
+          title="Verify Identity" 
+          onPress={verifyIdentity} 
+          loading={loading}
+          disabled={loading}
+        />
       </View>
     </ScreenContainer>
   );

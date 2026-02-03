@@ -13,7 +13,6 @@ import {
 
 import { Appointment } from "../api/types";
 
-// ... other imports
 
 export const RescheduleAppointment = ({ route, navigation }: any) => {
   const { appointment }: { appointment: Appointment } = route.params || {};
@@ -37,7 +36,7 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
 
       await AppointmentsApi.rescheduleAppointment(
         appointment.id,
-        combinedDateTime.toISOString()
+        combinedDateTime
       );
 
       Alert.alert("Success", "Appointment rescheduled successfully", [
@@ -139,6 +138,7 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
             title="Confirm Reschedule"
             onPress={handleConfirmReschedule}
             loading={loading}
+            disabled={loading}
           />
         </View>
       </ScrollView>

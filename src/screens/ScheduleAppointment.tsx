@@ -20,6 +20,8 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
   const [appointmentTime, setAppointmentTime] = useState(new Date());
   const [tattooDetail, setTattooDetail] = useState("");
 
+  const [loading, setLoading] = useState(false);
+
   const handleConfirmAppointment = async () => {
     // Combine date and time into a single ISO datetime
     const combinedDateTime = new Date(
@@ -37,6 +39,7 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
       tattooDetail: tattooDetail || undefined,
     };
 
+    setLoading(true);
     try {
         await AppointmentsApi.createAppointment(payload);
         Toast.show({
@@ -50,6 +53,8 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
         });
     } catch (error) {
         // Error handled globally
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,6 +122,7 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
           <Button
             title="Confirm Appointment"
             onPress={handleConfirmAppointment}
+            loading={loading}
           />
         </View>
       </ScrollView>
