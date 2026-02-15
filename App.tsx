@@ -6,6 +6,7 @@ import Toast from "react-native-toast-message";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { useConfigStore } from "./src/config/store";
 import { COLORS } from "./src/constants/theme";
+import { toastConfig } from "./src/components/ToastConfig"; // 👈 ADD THIS
 
 export default function App() {
   const { fetchConfig, isLoading } = useConfigStore();
@@ -16,6 +17,8 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+
+      {/* ALWAYS mounted */}
       {isLoading ? (
         <SafeAreaView
           style={{
@@ -28,11 +31,12 @@ export default function App() {
           <ActivityIndicator size="large" color={COLORS.primary} />
         </SafeAreaView>
       ) : (
-        <>
-          <AppNavigator />
-          <Toast />
-        </>
+        <AppNavigator />
       )}
+
+      {/* IMPORTANT: outside conditional */}
+      <Toast config={toastConfig} position="top" />
+
     </SafeAreaProvider>
   );
 }

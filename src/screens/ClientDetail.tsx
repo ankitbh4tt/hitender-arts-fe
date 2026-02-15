@@ -261,7 +261,7 @@ export const ClientDetail = ({ route, navigation }: any) => {
         </View>
       )}
       
-      <View style={styles.cardActions}>
+      <View style={styles.scheduleButtonContainer}>
         <TouchableOpacity
           style={styles.scheduleBtn}
           onPress={() => {
@@ -522,71 +522,58 @@ export const ClientDetail = ({ route, navigation }: any) => {
             <>
               <View style={styles.nameRow}>
                 <Typography variant="h2">{clientName || "Unknown"}</Typography>
+                <TouchableOpacity
+                  onPress={handleStartEdit}
+                  style={styles.editIconBtn}
+                >
+                  <Ionicons name="pencil-outline" size={18} color={COLORS.textLight} />
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.infoRow}>
-                <Ionicons name="person-outline" size={16} color={COLORS.textLight} />
+              <View style={styles.infoGrid}>
+                <View style={styles.infoGridItem}>
+                  <Ionicons name="person-outline" size={16} color={COLORS.textLight} style={styles.infoIcon} />
+                  <Typography
+                    variant="body"
+                    color={clientGender ? COLORS.text : COLORS.textLight}
+                  >
+                    {clientGender || "Not set"}
+                  </Typography>
+                </View>
+                <View style={styles.infoGridItem}>
+                  <Ionicons name="location-outline" size={16} color={COLORS.textLight} style={styles.infoIcon} />
+                  <Typography
+                    variant="body"
+                    color={clientLocation ? COLORS.text : COLORS.textLight}
+                  >
+                    {clientLocation || "Not set"}
+                  </Typography>
+                </View>
+              </View>
+
+              <View style={styles.contactRow}>
                 <Typography
                   variant="body"
-                  color={clientGender ? COLORS.text : COLORS.textLight}
+                  color={COLORS.textLight}
+                  style={styles.mobileText}
                 >
-                  {clientGender || "Not set"}
+                  {client.mobile}
                 </Typography>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Ionicons name="location-outline" size={16} color={COLORS.textLight} />
-                <Typography
-                  variant="body"
-                  color={clientLocation ? COLORS.text : COLORS.textLight}
+                <TouchableOpacity
+                  onPress={handleCall}
+                  style={styles.iconButton}
                 >
-                  {clientLocation || "Not set"}
-                </Typography>
+                  <Ionicons name="call" size={20} color={COLORS.success} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleWhatsApp}
+                  style={styles.iconButton}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                </TouchableOpacity>
               </View>
-
-              <TouchableOpacity
-                onPress={handleStartEdit}
-                style={styles.editButton}
-              >
-                <Ionicons name="pencil" size={18} color={COLORS.white} />
-                <Typography variant="body" color={COLORS.white}>
-                  Edit Info
-                </Typography>
-              </TouchableOpacity>
             </>
           )}
-
-          <View style={styles.mobileRow}>
-            <Ionicons name="call-outline" size={16} color={COLORS.textLight} />
-            <Typography
-              variant="body"
-              color={COLORS.textLight}
-              style={styles.mobile}
-            >
-              {client.mobile}
-            </Typography>
-          </View>
-
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: COLORS.success }]}
-              onPress={handleCall}
-            >
-              <Ionicons name="call" size={20} color={COLORS.white} />
-              <Typography variant="caption" color={COLORS.white}>
-                Call
-              </Typography>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: "#25D366" }]}
-              onPress={handleWhatsApp}
-            >
-              <Ionicons name="logo-whatsapp" size={20} color={COLORS.white} />
-              <Typography variant="caption" color={COLORS.white}>
-                WhatsApp
-              </Typography>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View style={styles.tabs}>
@@ -728,17 +715,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: SPACING.medium,
+    marginBottom: 16,
+    paddingHorizontal: SPACING.medium,
   },
   backBtn: {
     padding: SPACING.tiny,
   },
   scrollContent: {
-    paddingBottom: 80,
+    paddingHorizontal: SPACING.medium,
+    paddingBottom: 100,
   },
   profileSection: {
     alignItems: "center",
-    marginBottom: SPACING.large,
+    marginBottom: 24,
+    paddingTop: SPACING.small,
   },
   avatar: {
     width: 80,
@@ -747,14 +737,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.medium,
+    marginBottom: 12,
     ...SHADOWS.light,
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.small,
-    marginBottom: SPACING.tiny,
+    justifyContent: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+  editIconBtn: {
+    padding: 4,
   },
   editNameRow: {
     flexDirection: "row",
@@ -766,15 +760,17 @@ const styles = StyleSheet.create({
     padding: SPACING.tiny,
   },
   editForm: {
-    width: "85%",
-    marginBottom: SPACING.medium,
+    width: "100%",
+    maxWidth: 320,
+    marginBottom: 0,
   },
   editRow: {
-    marginBottom: SPACING.medium,
+    marginBottom: 16,
   },
   editLabel: {
-    marginBottom: SPACING.tiny,
+    marginBottom: 8,
     color: COLORS.textLight,
+    fontSize: 12,
   },
   genderPicker: {
     flexDirection: "row",
@@ -783,32 +779,52 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 8,
-    padding: SPACING.small,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     backgroundColor: COLORS.background,
+    minHeight: 44,
   },
   editActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: SPACING.medium,
-    marginTop: SPACING.small,
+    gap: 12,
+    marginTop: 16,
   },
   cancelBtn: {
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.medium,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   saveBtn: {
     backgroundColor: COLORS.secondary,
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.medium,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 8,
     minWidth: 80,
     alignItems: "center",
+    height: 40,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: SPACING.small,
-    gap: SPACING.tiny,
+    marginBottom: 8,
+    justifyContent: "center",
+  },
+  infoGrid: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+  infoGridItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    minWidth: "40%",
+    maxWidth: "48%",
+  },
+  infoIcon: {
+    marginRight: 6,
   },
   infoValueRow: {
     flexDirection: "row",
@@ -816,15 +832,30 @@ const styles = StyleSheet.create({
     gap: SPACING.tiny,
     flex: 1,
   },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  mobileText: {
+    marginRight: 4,
+  },
+  iconButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+  },
   editButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.secondary,
-    paddingVertical: SPACING.small,
+    paddingVertical: 10,
     paddingHorizontal: SPACING.medium,
     borderRadius: 8,
-    gap: SPACING.tiny,
-    marginTop: SPACING.small,
+    gap: 6,
+    marginTop: 12,
     alignSelf: "center",
     ...SHADOWS.light,
   },
@@ -868,15 +899,18 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
-    gap: SPACING.medium,
+    gap: 12,
+    marginTop: 8,
+    justifyContent: "center",
   },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: SPACING.small,
-    paddingHorizontal: SPACING.medium,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 20,
-    gap: SPACING.tiny,
+    gap: 6,
+    height: 40,
     ...SHADOWS.light,
   },
   tabs: {
@@ -884,15 +918,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     marginBottom: SPACING.medium,
+    paddingHorizontal: SPACING.medium,
   },
   tab: {
     flex: 1,
-    paddingVertical: SPACING.medium,
+    paddingVertical: 12,
     alignItems: "center",
   },
   activeTab: {
     borderBottomWidth: 2,
     borderBottomColor: COLORS.secondary,
+    marginBottom: -1,
   },
   listContainer: {
     flex: 1,
@@ -900,64 +936,76 @@ const styles = StyleSheet.create({
   historyCard: {
     marginBottom: SPACING.medium,
     padding: SPACING.medium,
+    borderRadius: 8,
+    ...SHADOWS.light,
   },
   historyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: SPACING.tiny,
+    alignItems: "flex-start",
+    marginBottom: 8,
   },
   tag: {
     backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.small,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   historyBody: {
-    marginBottom: SPACING.small,
+    marginBottom: 8,
     color: COLORS.text,
+    lineHeight: 20,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    marginBottom: 8,
   },
   timeLabel: {
     color: COLORS.textLight,
-    marginBottom: SPACING.tiny,
+    marginBottom: 8,
+    fontSize: 12,
   },
   cardActions: {
-    marginTop: SPACING.medium,
+    marginTop: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: SPACING.small,
+    paddingTop: 12,
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     flexWrap: "wrap",
-    gap: SPACING.tiny,
+    gap: 8,
+  },
+  scheduleButtonContainer: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 12,
   },
   scheduleBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.secondary,
-    paddingVertical: 6,
-    paddingHorizontal: SPACING.medium,
-    borderRadius: 4,
-    gap: SPACING.tiny,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+    alignSelf: "flex-start",
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.tiny,
-    paddingHorizontal: SPACING.small,
-    paddingVertical: 4,
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   fab: {
     position: "absolute",
-    right: SPACING.large,
-    bottom: SPACING.large,
+    right: SPACING.medium,
+    bottom: 88,
     width: 56,
     height: 56,
     borderRadius: 28,
