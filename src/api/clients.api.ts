@@ -27,4 +27,15 @@ export const ClientsApi = {
     const response = await client.get<any, ApiResponse<Client[]>>("/clients/all");
     return response.data || [];
   },
+
+  updateClientInfo: async (
+    clientId: number,
+    data: { name?: string; gender?: string; location?: string }
+  ): Promise<Client> => {
+    const response = await client.patch<any, ApiResponse<Client>>(
+      `/clients/${clientId}`,
+      data
+    );
+    return response.data!;
+  },
 };

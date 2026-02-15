@@ -10,12 +10,14 @@ import {
   Platform,
   ActivityIndicator,
   RefreshControl,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SPACING, SHADOWS } from "../constants/theme";
 import { Client, Inquiry, Appointment } from "../api/types";
 import { InquiriesApi } from "../api/inquiries.api";
 import { AppointmentsApi } from "../api/appointments.api";
+import { ClientsApi } from "../api/clients.api";
 import {
   ScreenContainer,
   Typography,
@@ -25,7 +27,8 @@ import {
 } from "../components";
 
 export const ClientDetail = ({ route, navigation }: any) => {
-  const { client }: { client: Client } = route.params;
+  const { client: initialClient }: { client: Client } = route.params;
+  const [client, setClient] = useState<Client>(initialClient);
   const [activeTab, setActiveTab] = useState<"inquiries" | "appointments">(
     "inquiries"
   );
@@ -33,14 +36,28 @@ export const ClientDetail = ({ route, navigation }: any) => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [editingName, setEditingName] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [clientName, setClientName] = useState(client.name || "");
+  const [clientGender, setClientGender] = useState(client.gender || "");
+  const [clientLocation, setClientLocation] = useState(client.location || "");
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [savingClientInfo, setSavingClientInfo] = useState(false);
+  const [genderModalVisible, setGenderModalVisible] = useState(false);
+
+  const genderOptions = ["Male", "Female", "Other"];
 
   useFocusEffect(
     useCallback(() => {
+      // Sync client from route params in case it was updated elsewhere
+      if (route.params?.client) {
+        const updatedClient = route.params.client;
+        setClient(updatedClient);
+        setClientName(updatedClient.name || "");
+        setClientGender(updatedClient.gender || "");
+        setClientLocation(updatedClient.location || "");
+      }
       fetchClientData();
-    }, [])
+    }, [route.params?.client])
   );
 
   const fetchClientData = async () => {
@@ -82,10 +99,54 @@ export const ClientDetail = ({ route, navigation }: any) => {
     Linking.openURL(url);
   };
 
-  const handeSaveName = () => {
-    // TODO: Implement API to update client
-    setEditingName(false);
-    Alert.alert("Info", "Update client not implemented yet");
+  const handleSaveClientInfo = async () => {
+    try {
+      setSavingClientInfo(true);
+      const updateData: { name?: string; gender?: string; location?: string } = {};
+      
+      if (clientName.trim() !== (client.name || "")) {
+        updateData.name = clientName.trim() || undefined;
+      }
+      if (clientGender !== (client.gender || "")) {
+        updateData.gender = clientGender.trim() || undefined;
+      }
+      if (clientLocation.trim() !== (client.location || "")) {
+        updateData.location = clientLocation.trim() || undefined;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        setIsEditing(false);
+        return;
+      }
+
+      const updatedClient = await ClientsApi.updateClientInfo(client.id, updateData);
+      setClient(updatedClient);
+      setClientName(updatedClient.name || "");
+      setClientGender(updatedClient.gender || "");
+      setClientLocation(updatedClient.location || "");
+      setIsEditing(false);
+      Alert.alert("Success", "Client information updated successfully");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to update client information");
+    } finally {
+      setSavingClientInfo(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setClientName(client.name || "");
+    setClientGender(client.gender || "");
+    setClientLocation(client.location || "");
+    setIsEditing(false);
+  };
+
+  const handleStartEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleGenderSelect = (gender: string) => {
+    setClientGender(gender);
+    setGenderModalVisible(false);
   };
 
   const handleReschedule = (appointment: Appointment) => {
@@ -330,6 +391,20 @@ export const ClientDetail = ({ route, navigation }: any) => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.actionButton}
+                  onPress={() => handleNoShow(item.id)}
+                  disabled={processingId === item.id}
+                >
+                  <Ionicons
+                    name="alert-circle-outline"
+                    size={18}
+                    color={processingId === item.id ? COLORS.textLight : COLORS.error}
+                  />
+                  <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.error}>
+                    No-Show
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
                   onPress={() => handleCancel(item.id)}
                   disabled={processingId === item.id}
                 >
@@ -374,37 +449,111 @@ export const ClientDetail = ({ route, navigation }: any) => {
               {(client.name || "U")[0].toUpperCase()}
             </Typography>
           </View>
-          {editingName ? (
-            <View style={styles.editNameRow}>
-              <Input
-                value={clientName}
-                onChangeText={setClientName}
-                placeholder="Client Name"
-                containerStyle={{ flex: 1, marginBottom: 0 }}
-              />
-              <TouchableOpacity
-                onPress={handeSaveName}
-                style={styles.saveIconBtn}
-              >
-                <Ionicons
-                  name="checkmark-circle"
-                  size={32}
-                  color={COLORS.success}
+          {isEditing ? (
+            <View style={styles.editForm}>
+              <View style={styles.editRow}>
+                <Typography variant="label" style={styles.editLabel}>
+                  Name
+                </Typography>
+                <Input
+                  value={clientName}
+                  onChangeText={setClientName}
+                  placeholder="Client Name"
+                  containerStyle={{ marginBottom: 0 }}
                 />
-              </TouchableOpacity>
+              </View>
+
+              <View style={styles.editRow}>
+                <Typography variant="label" style={styles.editLabel}>
+                  Gender
+                </Typography>
+                <TouchableOpacity
+                  style={styles.genderPicker}
+                  onPress={() => setGenderModalVisible(true)}
+                >
+                  <Typography
+                    variant="body"
+                    color={clientGender ? COLORS.text : COLORS.textLight}
+                  >
+                    {clientGender || "Select Gender"}
+                  </Typography>
+                  <Ionicons name="chevron-down" size={20} color={COLORS.textLight} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.editRow}>
+                <Typography variant="label" style={styles.editLabel}>
+                  Location
+                </Typography>
+                <Input
+                  value={clientLocation}
+                  onChangeText={setClientLocation}
+                  placeholder="Location"
+                  containerStyle={{ marginBottom: 0 }}
+                />
+              </View>
+
+              <View style={styles.editActions}>
+                <TouchableOpacity
+                  onPress={handleCancelEdit}
+                  style={styles.cancelBtn}
+                  disabled={savingClientInfo}
+                >
+                  <Typography variant="body" color={COLORS.error}>
+                    Cancel
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveClientInfo}
+                  style={styles.saveBtn}
+                  disabled={savingClientInfo}
+                >
+                  {savingClientInfo ? (
+                    <ActivityIndicator size="small" color={COLORS.white} />
+                  ) : (
+                    <Typography variant="body" color={COLORS.white}>
+                      Save
+                    </Typography>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
-            <TouchableOpacity
-              onPress={() => setEditingName(true)}
-              style={styles.nameRow}
-            >
-              <Typography variant="h2">{clientName || "Unknown"}</Typography>
-              <Ionicons
-                name="pencil-outline"
-                size={16}
-                color={COLORS.textLight}
-              />
-            </TouchableOpacity>
+            <>
+              <View style={styles.nameRow}>
+                <Typography variant="h2">{clientName || "Unknown"}</Typography>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Ionicons name="person-outline" size={16} color={COLORS.textLight} />
+                <Typography
+                  variant="body"
+                  color={clientGender ? COLORS.text : COLORS.textLight}
+                >
+                  {clientGender || "Not set"}
+                </Typography>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={16} color={COLORS.textLight} />
+                <Typography
+                  variant="body"
+                  color={clientLocation ? COLORS.text : COLORS.textLight}
+                >
+                  {clientLocation || "Not set"}
+                </Typography>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleStartEdit}
+                style={styles.editButton}
+              >
+                <Ionicons name="pencil" size={18} color={COLORS.white} />
+                <Typography variant="body" color={COLORS.white}>
+                  Edit Info
+                </Typography>
+              </TouchableOpacity>
+            </>
           )}
 
           <View style={styles.mobileRow}>
@@ -518,6 +667,58 @@ export const ClientDetail = ({ route, navigation }: any) => {
       >
         <Ionicons name="add" size={28} color={COLORS.white} />
       </TouchableOpacity>
+
+      <Modal
+        visible={genderModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setGenderModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Typography variant="h3">Select Gender</Typography>
+              <TouchableOpacity onPress={() => setGenderModalVisible(false)}>
+                <Ionicons name="close" size={28} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            {genderOptions.map((gender) => (
+              <TouchableOpacity
+                key={gender}
+                style={[
+                  styles.genderOption,
+                  clientGender === gender && styles.genderOptionSelected,
+                ]}
+                onPress={() => handleGenderSelect(gender)}
+              >
+                <Typography
+                  variant="body"
+                  color={
+                    clientGender === gender ? COLORS.secondary : COLORS.text
+                  }
+                >
+                  {gender}
+                </Typography>
+                {clientGender === gender && (
+                  <Ionicons
+                    name="checkmark"
+                    size={24}
+                    color={COLORS.secondary}
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={styles.genderOption}
+              onPress={() => handleGenderSelect("")}
+            >
+              <Typography variant="body" color={COLORS.textLight}>
+                Clear
+              </Typography>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 };
@@ -563,6 +764,99 @@ const styles = StyleSheet.create({
   },
   saveIconBtn: {
     padding: SPACING.tiny,
+  },
+  editForm: {
+    width: "85%",
+    marginBottom: SPACING.medium,
+  },
+  editRow: {
+    marginBottom: SPACING.medium,
+  },
+  editLabel: {
+    marginBottom: SPACING.tiny,
+    color: COLORS.textLight,
+  },
+  genderPicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    padding: SPACING.small,
+    backgroundColor: COLORS.background,
+  },
+  editActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: SPACING.medium,
+    marginTop: SPACING.small,
+  },
+  cancelBtn: {
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.medium,
+  },
+  saveBtn: {
+    backgroundColor: COLORS.secondary,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.medium,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.small,
+    gap: SPACING.tiny,
+  },
+  infoValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.tiny,
+    flex: 1,
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.secondary,
+    paddingVertical: SPACING.small,
+    paddingHorizontal: SPACING.medium,
+    borderRadius: 8,
+    gap: SPACING.tiny,
+    marginTop: SPACING.small,
+    alignSelf: "center",
+    ...SHADOWS.light,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: SPACING.large,
+    maxHeight: "50%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: SPACING.medium,
+  },
+  genderOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: SPACING.medium,
+    paddingHorizontal: SPACING.medium,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  genderOptionSelected: {
+    backgroundColor: COLORS.background,
   },
   mobileRow: {
     flexDirection: "row",
@@ -641,6 +935,8 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.small,
     flexDirection: "row",
     justifyContent: "flex-end",
+    flexWrap: "wrap",
+    gap: SPACING.tiny,
   },
   scheduleBtn: {
     flexDirection: "row",
