@@ -27,6 +27,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6692abbd-d3b9-41eb-bd53-1513939a7efd"
+      }
+    },
+    "owner": "iankittbhatt"
   }
 }
