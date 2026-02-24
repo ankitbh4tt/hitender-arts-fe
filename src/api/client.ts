@@ -14,24 +14,11 @@ export const client = axios.create({
 });
 
 
-client.interceptors.request.use(
-  (config) => {
-
-    const bodyData = config.data ?? config.params ?? {};
-
-    const { apiKey, timestamp, signature } = signRequest(bodyData);
-
-    // Ensure headers object exists
-    config.headers = config.headers ?? {};
-
-    config.headers["x-api-key"] = apiKey;
-    config.headers["x-timestamp"] = timestamp;
-    config.headers["x-signature"] = signature;
-
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+client.interceptors.request.use((config) => {
+  config.headers = config.headers ?? {};
+  config.headers["x-api-key"] = process.env.EXPO_PUBLIC_APP_API_KEY!;
+  return config;
+});
 
 // Response Interceptor
 client.interceptors.response.use(
