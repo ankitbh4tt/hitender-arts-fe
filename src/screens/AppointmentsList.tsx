@@ -243,7 +243,7 @@ export const AppointmentsList = ({ navigation }: any) => {
           )}
         </View>
 
-        {isScheduled && !isPast && (
+        {isScheduled && (
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.actionButton}
@@ -275,6 +275,20 @@ export const AppointmentsList = ({ navigation }: any) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
+              onPress={() => handleNoShow(item.id)}
+              disabled={processingId === item.id}
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={18}
+                color={processingId === item.id ? COLORS.textLight : COLORS.error}
+              />
+              <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.error}>
+                {processingId === item.id ? "..." : "No-Show"}
+              </Typography>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
               onPress={() => handleCancel(item.id)}
               disabled={processingId === item.id}
             >
@@ -285,39 +299,6 @@ export const AppointmentsList = ({ navigation }: any) => {
               />
               <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.error}>
                 {processingId === item.id ? "..." : "Cancel"}
-              </Typography>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {isScheduled && isPast && (
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleComplete(item.id)}
-              disabled={processingId === item.id}
-            >
-               <Ionicons
-                name="checkmark-circle-outline"
-                size={18}
-                color={processingId === item.id ? COLORS.textLight : COLORS.success}
-              />
-               <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.success}>
-                 {processingId === item.id ? "..." : "Complete"}
-              </Typography>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleNoShow(item.id)}
-              disabled={processingId === item.id}
-            >
-              <Ionicons
-                name="alert-circle-outline"
-                size={18}
-                color={processingId === item.id ? COLORS.textLight : COLORS.error}
-              />
-              <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.error}>
-                {processingId === item.id ? "..." : "Mark No-Show"}
               </Typography>
             </TouchableOpacity>
           </View>

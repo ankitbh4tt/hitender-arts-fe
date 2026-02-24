@@ -27,6 +27,7 @@ client.interceptors.response.use(
         type: "error",
         text1: "Error",
         text2: message,
+        visibilityTime: 8000,
       });
       return Promise.reject({ message });
     } else if (error.request) {

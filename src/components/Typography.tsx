@@ -8,6 +8,7 @@ interface TypographyProps {
   style?: TextStyle;
   children: React.ReactNode;
   align?: "left" | "center" | "right";
+  numberOfLines?: number;
 }
 
 export const Typography = ({
@@ -16,9 +17,10 @@ export const Typography = ({
   style,
   children,
   align = "left",
+  numberOfLines,
 }: TypographyProps) => {
   return (
-    <Text style={[styles[variant], { color, textAlign: align }, style]}>
+    <Text style={[styles[variant], { color, textAlign: align }, style]} numberOfLines={numberOfLines}>
       {children}
     </Text>
   );

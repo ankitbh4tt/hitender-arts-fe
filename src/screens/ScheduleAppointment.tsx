@@ -58,6 +58,12 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
     }
   };
 
+  const handleClearForm = () => {
+    setAppointmentDate(new Date());
+    setAppointmentTime(new Date());
+    setTattooDetail("");
+  };
+
   return (
     <ScreenContainer>
       <ScrollView contentContainerStyle={styles.content}>
@@ -120,6 +126,12 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
 
         <View style={styles.actions}>
           <Button
+            title="Clear Form"
+            onPress={handleClearForm}
+            variant="outline"
+            style={styles.clearButton}
+          />
+          <Button
             title="Confirm Appointment"
             onPress={handleConfirmAppointment}
             loading={loading}
@@ -164,6 +176,10 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   actions: {
+    gap: SPACING.medium,
     marginBottom: SPACING.large,
+  },
+  clearButton: {
+    borderColor: COLORS.textLight,
   },
 });

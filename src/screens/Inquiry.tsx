@@ -127,6 +127,13 @@ export const Inquiry = ({ route, navigation }: any) => {
     }
   };
 
+  const handleClearForm = () => {
+    setTattooSize(null);
+    setReferenceType(null);
+    setIntent("");
+    setRemark("");
+  };
+
   const handleSaveAndSetAppointment = async () => {
     if (!client) {
       await handleResolveMobile();
@@ -270,6 +277,12 @@ export const Inquiry = ({ route, navigation }: any) => {
 
         <View style={styles.actions}>
           <Button
+            title="Clear Form"
+            onPress={handleClearForm}
+            variant="outline"
+            style={styles.clearButton}
+          />
+          <Button
             title="Save Inquiry"
             onPress={handleSaveInquiry}
             variant="outline"
@@ -349,5 +362,8 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     marginBottom: SPACING.small,
+  },
+  clearButton: {
+    borderColor: COLORS.textLight,
   },
 });
