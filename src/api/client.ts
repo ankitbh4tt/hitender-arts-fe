@@ -1,5 +1,6 @@
 import axios from "axios";
 import Toast from "react-native-toast-message";
+import { signRequest } from "../utils/signInRequest";
 
 // Placeholder URL - to be replaced with env var
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -11,6 +12,26 @@ export const client = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+
+client.interceptors.request.use(
+  (config) => {
+
+    const bodyData = config.data ?? config.params ?? {};
+
+    const { apiKey, timestamp, signature } = signRequest(bodyData);
+
+    // Ensure headers object exists
+    config.headers = config.headers ?? {};
+
+    config.headers["x-api-key"] = apiKey;
+    config.headers["x-timestamp"] = timestamp;
+    config.headers["x-signature"] = signature;
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Response Interceptor
 client.interceptors.response.use(

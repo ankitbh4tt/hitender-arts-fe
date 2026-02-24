@@ -36,7 +36,6 @@ export const AppointmentsList = ({ navigation }: any) => {
       const data = await AppointmentsApi.getUpcomingAppointments();
       setAppointments(data);
     } catch (error) {
-      console.log("Error fetching appointments:", error);
       Alert.alert("Error", "Failed to fetch appointments");
     } finally {
       setLoading(false);
@@ -106,7 +105,6 @@ export const AppointmentsList = ({ navigation }: any) => {
   };
 
   const handleCancel = async (appointmentId: number) => {
-    console.log("Trace: handleCancel pressed", appointmentId);
     Alert.alert(
       "Cancel Appointment",
       "Are you sure you want to cancel this appointment?",

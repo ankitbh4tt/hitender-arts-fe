@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../constants/theme";
 
@@ -99,6 +100,20 @@ export const CRMTabs = () => {
             <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Always reset to the AppointmentsList when tab is pressed
+            e.preventDefault();
+            navigation.dispatch(
+              CommonActions.navigate({
+                name: "AppointmentsTab",
+                params: {
+                  screen: "AppointmentsList",
+                },
+              })
+            );
+          },
+        })}
       />
     </Tab.Navigator>
   );
