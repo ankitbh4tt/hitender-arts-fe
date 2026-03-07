@@ -39,6 +39,12 @@
         "projectId": "6692abbd-d3b9-41eb-bd53-1513939a7efd"
       }
     },
-    "owner": "iankittbhatt"
+    "owner": "iankittbhatt",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6692abbd-d3b9-41eb-bd53-1513939a7efd"
+    }
   }
 }
