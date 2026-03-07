@@ -6,6 +6,7 @@
 
   "build": {
     "preview": {
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       },
@@ -17,7 +18,7 @@
     "production": {
     "channel": "production",
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "apk"
       },
       "ios": {
         "autoIncrement": true
