@@ -20,7 +20,7 @@ import { Client, Inquiry, Appointment } from "../api/types";
 import { InquiriesApi } from "../api/inquiries.api";
 import { AppointmentsApi } from "../api/appointments.api";
 import { ClientsApi } from "../api/clients.api";
-import { Typography, Input } from "../components";
+import { Typography, Input, Button } from "../components";
 
 const GOLD = "#F6C200";
 const GOLD_DARK = "#E2A900";
@@ -55,6 +55,13 @@ export const ClientDetail = ({ route, navigation }: any) => {
   const [savingClientInfo, setSavingClientInfo] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [quickAddVisible, setQuickAddVisible] = useState(false);
+
+  // Completion modal state
+  const [completeModalVisible, setCompleteModalVisible] = useState(false);
+  const [selectedAppointmentForComplete, setSelectedAppointmentForComplete] = useState<number | null>(null);
+  const [completeMethod, setCompleteMethod] = useState("CASH");
+  const [completeAmount, setCompleteAmount] = useState("");
+  const [completing, setCompleting] = useState(false);
 
   const genderOptions = ["Male", "Female", "Other"];
 
@@ -173,25 +180,36 @@ export const ClientDetail = ({ route, navigation }: any) => {
     ]);
   };
 
-  const handleComplete = (id: number) => {
-    Alert.alert("Complete", "Mark as completed?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Confirm",
-        onPress: async () => {
-          try {
-            setProcessingId(id);
-            await AppointmentsApi.completeAppointment(id);
-            Alert.alert("Success", "Completed");
-            fetchClientData();
-          } catch (e: any) {
-            Alert.alert("Error", e.message || "Failed");
-          } finally {
-            setProcessingId(null);
-          }
-        },
-      },
-    ]);
+  const handleCompletePress = (id: number) => {
+    setSelectedAppointmentForComplete(id);
+    setCompleteMethod("CASH");
+    setCompleteAmount("");
+    setCompleteModalVisible(true);
+  };
+
+  const submitCompleteAppointment = async () => {
+    if (!selectedAppointmentForComplete) return;
+    if (!completeAmount || isNaN(Number(completeAmount))) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    try {
+      setCompleting(true);
+      await AppointmentsApi.completeAppointment(
+        selectedAppointmentForComplete,
+        completeMethod,
+        Number(completeAmount)
+      );
+      Alert.alert("Success", "Completed");
+      setCompleteModalVisible(false);
+      fetchClientData();
+    } catch (e: any) {
+      Alert.alert("Error", e.message || "Failed");
+    } finally {
+      setCompleting(false);
+      setSelectedAppointmentForComplete(null);
+    }
   };
 
   const handleSaveClientInfo = async () => {
@@ -373,6 +391,12 @@ export const ClientDetail = ({ route, navigation }: any) => {
                               </View>
                             </View>
                             {apt.tattooDetail ? <Typography variant="body" numberOfLines={1} style={{ fontWeight: "500", marginTop: 2 }}>{apt.tattooDetail}</Typography> : null}
+                            {apt.appointmentStatus?.code === "COMPLETED" && apt.paymentMethod && apt.amount && (
+                              <View style={s.chipRow}>
+                                <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>₹{apt.amount}</Typography></View>
+                                <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{apt.paymentMethod}</Typography></View>
+                              </View>
+                            )}
                           </View>
                         </View>
                       );
@@ -400,10 +424,16 @@ export const ClientDetail = ({ route, navigation }: any) => {
                         <View style={s.agInfo}>
                           <Typography variant="body">{fmtTime(apt.appointmentAt)}</Typography>
                           {apt.tattooDetail ? <Typography variant="caption" color={COLORS.textLight} numberOfLines={1}>{apt.tattooDetail}</Typography> : null}
+                          {sc === "COMPLETED" && apt.paymentMethod && apt.amount && (
+                            <View style={[s.chipRow, { marginTop: 4 }]}>
+                              <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>₹{apt.amount}</Typography></View>
+                              <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{apt.paymentMethod}</Typography></View>
+                            </View>
+                          )}
                           {sc === "SCHEDULED" && (
                             <View style={s.agActions}>
                               <TouchableOpacity onPress={() => handleReschedule(apt)} disabled={processingId !== null} style={s.agActBtn}><Typography variant="caption" color={processingId !== null ? COLORS.textLight : "#1565C0"}>Reschedule</Typography></TouchableOpacity>
-                              <TouchableOpacity onPress={() => handleComplete(apt.id)} disabled={processingId === apt.id} style={s.agActBtn}><Typography variant="caption" color={processingId === apt.id ? COLORS.textLight : "#2E7D32"}>Complete</Typography></TouchableOpacity>
+                              <TouchableOpacity onPress={() => handleCompletePress(apt.id)} disabled={processingId === apt.id} style={s.agActBtn}><Typography variant="caption" color={processingId === apt.id ? COLORS.textLight : "#2E7D32"}>Complete</Typography></TouchableOpacity>
                               <TouchableOpacity onPress={() => handleNoShow(apt.id)} disabled={processingId === apt.id} style={s.agActBtn}><Typography variant="caption" color={processingId === apt.id ? COLORS.textLight : "#F57C00"}>No Show</Typography></TouchableOpacity>
                               <TouchableOpacity onPress={() => handleCancel(apt.id)} disabled={processingId === apt.id} style={s.agActBtn}><Typography variant="caption" color={processingId === apt.id ? COLORS.textLight : "#D32F2F"}>Cancel</Typography></TouchableOpacity>
                             </View>
@@ -503,6 +533,43 @@ export const ClientDetail = ({ route, navigation }: any) => {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Completion Modal */}
+      {completeModalVisible && (
+        <View style={StyleSheet.absoluteFill}>
+          <View style={s.cOverlay}>
+            <View style={s.cModalContent}>
+              <Typography variant="h3" style={{ marginBottom: SPACING.medium }}>Complete Appointment</Typography>
+              
+              <Input
+                label="Amount"
+                value={completeAmount}
+                onChangeText={setCompleteAmount}
+                keyboardType="numeric"
+                placeholder="Enter amount"
+              />
+
+              <Typography variant="caption" color={COLORS.textLight} style={{ marginBottom: SPACING.small }}>Payment Method</Typography>
+              <View style={s.cPaymentGroup}>
+                {["CASH", "ONLINE", "CARD"].map((method) => (
+                  <TouchableOpacity
+                    key={method}
+                    style={[s.cPaymentBtn, completeMethod === method && s.cPaymentBtnActive]}
+                    onPress={() => setCompleteMethod(method)}
+                  >
+                    <Typography variant="caption" color={completeMethod === method ? COLORS.primary : COLORS.text}>{method}</Typography>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={s.cModalActions}>
+                <Button title="Cancel" variant="outline" onPress={() => setCompleteModalVisible(false)} style={{ flex: 1, marginRight: SPACING.small }} />
+                <Button title="Confirm" onPress={submitCompleteAppointment} loading={completing} style={{ flex: 1 }} />
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -578,4 +645,12 @@ const s = StyleSheet.create({
   qaSheet: { backgroundColor: "#FFF", borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 12 },
   qaHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#DDD", alignSelf: "center", marginBottom: 16 },
   qaOpt: { flexDirection: "row", alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "#F0F0F0" },
+
+  // Completion Modal
+  cOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100 },
+  cModalContent: { backgroundColor: COLORS.white, padding: SPACING.large, borderRadius: SPACING.small, width: "90%" },
+  cPaymentGroup: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.large },
+  cPaymentBtn: { flex: 1, paddingVertical: SPACING.small, borderWidth: 1, borderColor: COLORS.border, borderRadius: SPACING.small, alignItems: "center", marginHorizontal: SPACING.tiny },
+  cPaymentBtnActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}10` },
+  cModalActions: { flexDirection: "row", justifyContent: "space-between" },
 });

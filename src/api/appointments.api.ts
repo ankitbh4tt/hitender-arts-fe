@@ -51,9 +51,10 @@ export const AppointmentsApi = {
     return response.data!;
   },
 
-  completeAppointment: async (id: number): Promise<Appointment> => {
+  completeAppointment: async (id: number, paymentMethod: string, amount: number): Promise<Appointment> => {
     const response = await client.patch<any, ApiResponse<Appointment>>(
-      `/appointments/complete/${id}`
+      `/appointments/complete/${id}`,
+      { paymentMethod, amount }
     );
     return response.data!;
   },

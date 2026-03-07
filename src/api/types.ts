@@ -63,6 +63,8 @@ export interface Appointment {
   tattooDetail?: string | null;
   appointmentStatusId: number;
   appointmentStatus?: AppointmentStatus;
+  paymentMethod?: 'CASH' | 'ONLINE' | 'CARD' | null;
+  amount?: number | null;
   client?: Client;
   inquiry?: Inquiry;
   createdAt: string;

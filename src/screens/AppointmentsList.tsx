@@ -29,6 +29,13 @@ export const AppointmentsList = ({ navigation }: any) => {
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState<number | null>(null);
 
+  // Completion modal state
+  const [completeModalVisible, setCompleteModalVisible] = useState(false);
+  const [selectedAppointmentForComplete, setSelectedAppointmentForComplete] = useState<number | null>(null);
+  const [completeMethod, setCompleteMethod] = useState("CASH");
+  const [completeAmount, setCompleteAmount] = useState("");
+  const [completing, setCompleting] = useState(false);
+
   const fetchAppointments = async () => {
     setLoading(true);
     try {
@@ -160,29 +167,36 @@ export const AppointmentsList = ({ navigation }: any) => {
   };
 
 
-  const handleComplete = async (appointmentId: number) => {
-    Alert.alert(
-      "Complete Appointment",
-      "Mark this appointment as completed?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm",
-          onPress: async () => {
-            try {
-              setProcessingId(appointmentId);
-              await AppointmentsApi.completeAppointment(appointmentId);
-              Alert.alert("Success", "Appointment marked as completed");
-              fetchAppointments();
-            } catch (error: any) {
-              Alert.alert("Error", error.message || "Failed to complete appointment");
-            } finally {
-              setProcessingId(null);
-            }
-          },
-        },
-      ]
-    );
+  const handleCompletePress = (appointmentId: number) => {
+    setSelectedAppointmentForComplete(appointmentId);
+    setCompleteMethod("CASH");
+    setCompleteAmount("");
+    setCompleteModalVisible(true);
+  };
+
+  const submitCompleteAppointment = async () => {
+    if (!selectedAppointmentForComplete) return;
+    if (!completeAmount || isNaN(Number(completeAmount))) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    try {
+      setCompleting(true);
+      await AppointmentsApi.completeAppointment(
+        selectedAppointmentForComplete,
+        completeMethod,
+        Number(completeAmount)
+      );
+      Alert.alert("Success", "Appointment marked as completed");
+      setCompleteModalVisible(false);
+      fetchAppointments();
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to complete appointment");
+    } finally {
+      setCompleting(false);
+      setSelectedAppointmentForComplete(null);
+    }
   };
 
   const renderAppointmentCard = ({ item }: { item: Appointment }) => {
@@ -259,7 +273,7 @@ export const AppointmentsList = ({ navigation }: any) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => handleComplete(item.id)}
+              onPress={() => handleCompletePress(item.id)}
               disabled={processingId === item.id}
             >
               <Ionicons
@@ -268,7 +282,7 @@ export const AppointmentsList = ({ navigation }: any) => {
                 color={processingId === item.id ? COLORS.textLight : COLORS.success}
               />
               <Typography variant="caption" color={processingId === item.id ? COLORS.textLight : COLORS.success}>
-                {processingId === item.id ? "..." : "Complete"}
+                Complete
               </Typography>
             </TouchableOpacity>
             <TouchableOpacity
@@ -354,6 +368,43 @@ export const AppointmentsList = ({ navigation }: any) => {
           </View>
         }
       />
+
+      {/* Completion Modal */}
+      {completeModalVisible && (
+        <View style={StyleSheet.absoluteFill}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Typography variant="h3" style={{ marginBottom: SPACING.medium }}>Complete Appointment</Typography>
+              
+              <Input
+                label="Amount"
+                value={completeAmount}
+                onChangeText={setCompleteAmount}
+                keyboardType="numeric"
+                placeholder="Enter amount"
+              />
+
+              <Typography variant="caption" color={COLORS.textLight} style={{ marginBottom: SPACING.small }}>Payment Method</Typography>
+              <View style={styles.paymentMethodGroup}>
+                {["CASH", "ONLINE", "CARD"].map((method) => (
+                  <TouchableOpacity
+                    key={method}
+                    style={[styles.paymentMethodBtn, completeMethod === method && styles.paymentMethodBtnActive]}
+                    onPress={() => setCompleteMethod(method)}
+                  >
+                    <Typography variant="caption" color={completeMethod === method ? COLORS.primary : COLORS.text}>{method}</Typography>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.modalActions}>
+                <Button title="Cancel" variant="outline" onPress={() => setCompleteModalVisible(false)} style={{ flex: 1, marginRight: SPACING.small }} />
+                <Button title="Confirm" onPress={submitCompleteAppointment} loading={completing} style={{ flex: 1 }} />
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
     </ScreenContainer>
   );
 };
@@ -429,5 +480,39 @@ const styles = StyleSheet.create({
   emptyTitle: {
     marginTop: SPACING.medium,
     marginBottom: SPACING.small,
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    padding: SPACING.large,
+    borderRadius: SPACING.small,
+    width: "90%",
+  },
+  paymentMethodGroup: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.large,
+  },
+  paymentMethodBtn: {
+    flex: 1,
+    paddingVertical: SPACING.small,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: SPACING.small,
+    alignItems: "center",
+    marginHorizontal: SPACING.tiny,
+  },
+  paymentMethodBtnActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: `${COLORS.primary}10`,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
 });
