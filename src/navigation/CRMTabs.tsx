@@ -5,59 +5,60 @@ import { CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../constants/theme";
 
-// Import screens
+// Screens
+import { DayCalendar } from "../screens/DayCalendar";
+import { QuickAddAppointment } from "../screens/QuickAddAppointment";
 import { ClientsList } from "../screens/ClientsList";
 import { ClientDetail } from "../screens/ClientDetail";
-import { InquiriesList } from "../screens/InquiriesList";
 import { Inquiry } from "../screens/Inquiry";
-import { AppointmentsList } from "../screens/AppointmentsList";
 import { ScheduleAppointment } from "../screens/ScheduleAppointment";
 import { RescheduleAppointment } from "../screens/RescheduleAppointment";
+import { FollowUpsList } from "../screens/FollowUpsList";
+import { Settings } from "../screens/Settings";
 
 const Tab = createBottomTabNavigator();
+const TodayStack = createNativeStackNavigator();
 const ClientsStack = createNativeStackNavigator();
-const InquiriesStack = createNativeStackNavigator();
-const AppointmentsStack = createNativeStackNavigator();
+const FollowUpsStack = createNativeStackNavigator();
+const SettingsStack = createNativeStackNavigator();
 
-// Clients Tab Stack
+// Today tab — the day calendar home + appointment creation/editing.
+const TodayNavigator = () => (
+  <TodayStack.Navigator screenOptions={{ headerShown: false }}>
+    <TodayStack.Screen name="DayCalendar" component={DayCalendar} />
+    <TodayStack.Screen name="QuickAddAppointment" component={QuickAddAppointment} />
+    <TodayStack.Screen name="ScheduleAppointment" component={ScheduleAppointment} />
+    <TodayStack.Screen name="RescheduleAppointment" component={RescheduleAppointment} />
+  </TodayStack.Navigator>
+);
+
+// Clients tab — profiles, inquiries, and scheduling from a client.
 const ClientsNavigator = () => (
   <ClientsStack.Navigator screenOptions={{ headerShown: false }}>
     <ClientsStack.Screen name="ClientsList" component={ClientsList} />
     <ClientsStack.Screen name="ClientDetail" component={ClientDetail} />
+    <ClientsStack.Screen
+      name="Inquiry"
+      component={Inquiry}
+      initialParams={{ client: null }}
+    />
+    <ClientsStack.Screen name="ScheduleAppointment" component={ScheduleAppointment} />
+    <ClientsStack.Screen name="RescheduleAppointment" component={RescheduleAppointment} />
   </ClientsStack.Navigator>
 );
 
-// Inquiries Tab Stack
-// Inquiries Tab Stack
-const InquiriesNavigator = () => (
-  <InquiriesStack.Navigator screenOptions={{ headerShown: false }}>
-    <InquiriesStack.Screen
-      name="Inquiry"
-      component={Inquiry}
-      initialParams={{ client: null }} // Ensure we can open it without params
-    />
-  </InquiriesStack.Navigator>
+const FollowUpsNavigator = () => (
+  <FollowUpsStack.Navigator screenOptions={{ headerShown: false }}>
+    <FollowUpsStack.Screen name="FollowUpsList" component={FollowUpsList} />
+  </FollowUpsStack.Navigator>
 );
 
-// Appointments Tab Stack
-const AppointmentsNavigator = () => (
-  <AppointmentsStack.Navigator screenOptions={{ headerShown: false }}>
-    <AppointmentsStack.Screen
-      name="AppointmentsList"
-      component={AppointmentsList}
-    />
-    <AppointmentsStack.Screen
-      name="ScheduleAppointment"
-      component={ScheduleAppointment}
-    />
-    <AppointmentsStack.Screen
-      name="RescheduleAppointment"
-      component={RescheduleAppointment}
-    />
-  </AppointmentsStack.Navigator>
+const SettingsNavigator = () => (
+  <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
+    <SettingsStack.Screen name="Settings" component={Settings} />
+  </SettingsStack.Navigator>
 );
 
-// Bottom Tab Navigator
 export const CRMTabs = () => {
   return (
     <Tab.Navigator
@@ -72,6 +73,28 @@ export const CRMTabs = () => {
       }}
     >
       <Tab.Screen
+        name="TodayTab"
+        component={TodayNavigator}
+        options={{
+          tabBarLabel: "Today",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
+        listeners={({ navigation }) => ({
+          // Pressing the tab always returns to the day calendar.
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.dispatch(
+              CommonActions.navigate({
+                name: "TodayTab",
+                params: { screen: "DayCalendar" },
+              })
+            );
+          },
+        })}
+      />
+      <Tab.Screen
         name="ClientsTab"
         component={ClientsNavigator}
         options={{
@@ -82,38 +105,24 @@ export const CRMTabs = () => {
         }}
       />
       <Tab.Screen
-        name="InquiriesTab"
-        component={InquiriesNavigator}
+        name="FollowUpsTab"
+        component={FollowUpsNavigator}
         options={{
-          tabBarLabel: "Inquiries",
+          tabBarLabel: "Follow-Ups",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text-outline" size={size} color={color} />
+            <Ionicons name="heart-outline" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="AppointmentsTab"
-        component={AppointmentsNavigator}
+        name="SettingsTab"
+        component={SettingsNavigator}
         options={{
-          tabBarLabel: "Appointments",
+          tabBarLabel: "Settings",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            // Always reset to the AppointmentsList when tab is pressed
-            e.preventDefault();
-            navigation.dispatch(
-              CommonActions.navigate({
-                name: "AppointmentsTab",
-                params: {
-                  screen: "AppointmentsList",
-                },
-              })
-            );
-          },
-        })}
       />
     </Tab.Navigator>
   );

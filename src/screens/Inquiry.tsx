@@ -118,10 +118,7 @@ export const Inquiry = ({ route, navigation }: any) => {
         text1: "Success",
         text2: "Inquiry saved successfully",
       });
-      navigation.navigate("ClientsTab", {
-        screen: "ClientDetail",
-        params: { client },
-      });
+      navigation.navigate("ClientDetail", { client });
     } catch (error) {
        // Alert handled globally
     }
@@ -164,12 +161,9 @@ export const Inquiry = ({ route, navigation }: any) => {
         text1: "Success",
         text2: "Inquiry saved. Proceeding to appointment.",
       });
-      navigation.navigate("AppointmentsTab", {
-        screen: "ScheduleAppointment",
-        params: {
-          inquiryId: response.id,
-          client,
-        },
+      navigation.navigate("ScheduleAppointment", {
+        inquiryId: response.id,
+        client,
       });
     } catch (error) {
        // Alert handled globally

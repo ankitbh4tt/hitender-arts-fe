@@ -21,6 +21,8 @@ import { InquiriesApi } from "../api/inquiries.api";
 import { AppointmentsApi } from "../api/appointments.api";
 import { ClientsApi } from "../api/clients.api";
 import { Typography, Input, Button } from "../components";
+import { fillTemplate, formatCurrency, openWhatsApp } from "../utils";
+import { useSettingsStore } from "../config/settingsStore";
 
 const GOLD = "#F6C200";
 const GOLD_DARK = "#E2A900";
@@ -59,9 +61,13 @@ export const ClientDetail = ({ route, navigation }: any) => {
   // Completion modal state
   const [completeModalVisible, setCompleteModalVisible] = useState(false);
   const [selectedAppointmentForComplete, setSelectedAppointmentForComplete] = useState<number | null>(null);
-  const [completeMethod, setCompleteMethod] = useState("CASH");
+  const [completeMethod, setCompleteMethod] = useState<"CASH" | "ONLINE" | "CARD">("CASH");
   const [completeAmount, setCompleteAmount] = useState("");
+  const [completeNotes, setCompleteNotes] = useState("");
   const [completing, setCompleting] = useState(false);
+
+  const aftercareTemplate = useSettingsStore((s) => s.aftercareTemplate);
+  const studioName = useSettingsStore((s) => s.studioName);
 
   const genderOptions = ["Male", "Female", "Other"];
 
@@ -126,14 +132,11 @@ export const ClientDetail = ({ route, navigation }: any) => {
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL(`whatsapp://send?phone=91${client.mobile}`);
+    openWhatsApp(client.mobile, "");
   };
 
   const handleReschedule = (apt: Appointment) => {
-    navigation.navigate("AppointmentsTab", {
-      screen: "RescheduleAppointment",
-      params: { appointment: apt },
-    });
+    navigation.navigate("RescheduleAppointment", { appointment: apt });
   };
 
   const handleCancel = (id: number) => {
@@ -184,6 +187,7 @@ export const ClientDetail = ({ route, navigation }: any) => {
     setSelectedAppointmentForComplete(id);
     setCompleteMethod("CASH");
     setCompleteAmount("");
+    setCompleteNotes("");
     setCompleteModalVisible(true);
   };
 
@@ -196,12 +200,16 @@ export const ClientDetail = ({ route, navigation }: any) => {
 
     try {
       setCompleting(true);
-      await AppointmentsApi.completeAppointment(
-        selectedAppointmentForComplete,
-        completeMethod,
-        Number(completeAmount)
+      await AppointmentsApi.completeAppointment(selectedAppointmentForComplete, {
+        paymentMethod: completeMethod,
+        amount: Number(completeAmount),
+        completionNotes: completeNotes.trim() || undefined,
+      });
+      // Healing follow-ups (3/15/30-day) are auto-created by the backend.
+      Alert.alert(
+        "Completed",
+        "Appointment marked complete. Healing follow-ups have been scheduled."
       );
-      Alert.alert("Success", "Completed");
       setCompleteModalVisible(false);
       fetchClientData();
     } catch (e: any) {
@@ -239,6 +247,14 @@ export const ClientDetail = ({ route, navigation }: any) => {
     setGenderModalVisible(false);
   };
 
+  const sendAftercare = () => {
+    const message = fillTemplate(aftercareTemplate(), {
+      clientName: client.name || "there",
+      studioName: studioName(),
+    });
+    openWhatsApp(client.mobile, message);
+  };
+
   // ── Helper data ──
   const timelineData = useMemo((): TimelineItem[] => {
     const items: TimelineItem[] = [];
@@ -263,12 +279,12 @@ export const ClientDetail = ({ route, navigation }: any) => {
 
   const navToSchedule = () => {
     const latest = inquiries.length > 0 ? inquiries[0] : undefined;
-    navigation.navigate("AppointmentsTab", { screen: "ScheduleAppointment", params: { inquiryId: latest?.id, client } });
+    navigation.navigate("ScheduleAppointment", { inquiryId: latest?.id, client });
   };
 
   const navToInquiry = () => {
     const latest = inquiries.length > 0 ? inquiries[0] : undefined;
-    navigation.navigate("InquiriesTab", { screen: "Inquiry", params: { client, latestInquiry: latest } });
+    navigation.navigate("Inquiry", { client, latestInquiry: latest });
   };
 
   // ── RENDER ──
@@ -368,7 +384,7 @@ export const ClientDetail = ({ route, navigation }: any) => {
                               {inq.referenceType ? <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{inq.referenceType.name}</Typography></View> : null}
                               {inq.tattooSize ? <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{inq.tattooSize.label}</Typography></View> : null}
                             </View>
-                            <TouchableOpacity style={s.tlAction} onPress={() => navigation.navigate("AppointmentsTab", { screen: "ScheduleAppointment", params: { inquiryId: inq.id, client } })}>
+                            <TouchableOpacity style={s.tlAction} onPress={() => navigation.navigate("ScheduleAppointment", { inquiryId: inq.id, client })}>
                               <Ionicons name="calendar-outline" size={14} color="#1565C0" />
                               <Typography variant="caption" color="#1565C0" style={{ marginLeft: 4 }}>Schedule</Typography>
                             </TouchableOpacity>
@@ -393,7 +409,7 @@ export const ClientDetail = ({ route, navigation }: any) => {
                             {apt.tattooDetail ? <Typography variant="body" numberOfLines={1} style={{ fontWeight: "500", marginTop: 2 }}>{apt.tattooDetail}</Typography> : null}
                             {apt.appointmentStatus?.code === "COMPLETED" && apt.paymentMethod && apt.amount && (
                               <View style={s.chipRow}>
-                                <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>₹{apt.amount}</Typography></View>
+                                <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{formatCurrency(apt.amount)}</Typography></View>
                                 <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{apt.paymentMethod}</Typography></View>
                               </View>
                             )}
@@ -422,11 +438,12 @@ export const ClientDetail = ({ route, navigation }: any) => {
                           <Typography variant="caption" color={COLORS.textLight} align="center">{d.toLocaleDateString("en-IN", { month: "short" })}</Typography>
                         </View>
                         <View style={s.agInfo}>
-                          <Typography variant="body">{fmtTime(apt.appointmentAt)}</Typography>
+                          <Typography variant="body">{fmtTime(apt.appointmentAt)} · {apt.durationMinutes || 60} min</Typography>
                           {apt.tattooDetail ? <Typography variant="caption" color={COLORS.textLight} numberOfLines={1}>{apt.tattooDetail}</Typography> : null}
+                          {sc === "COMPLETED" && apt.completionNotes ? <Typography variant="caption" color={COLORS.textLight} numberOfLines={2}>📝 {apt.completionNotes}</Typography> : null}
                           {sc === "COMPLETED" && apt.paymentMethod && apt.amount && (
                             <View style={[s.chipRow, { marginTop: 4 }]}>
-                              <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>₹{apt.amount}</Typography></View>
+                              <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{formatCurrency(apt.amount)}</Typography></View>
                               <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{apt.paymentMethod}</Typography></View>
                             </View>
                           )}
@@ -530,6 +547,10 @@ export const ClientDetail = ({ route, navigation }: any) => {
               <Ionicons name="calendar-outline" size={24} color="#1565C0" />
               <Typography variant="body" style={{ marginLeft: 16 }}>Schedule Appointment</Typography>
             </TouchableOpacity>
+            <TouchableOpacity style={s.qaOpt} onPress={() => { setQuickAddVisible(false); sendAftercare(); }}>
+              <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+              <Typography variant="body" style={{ marginLeft: 16 }}>Send Aftercare (WhatsApp)</Typography>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -551,7 +572,7 @@ export const ClientDetail = ({ route, navigation }: any) => {
 
               <Typography variant="caption" color={COLORS.textLight} style={{ marginBottom: SPACING.small }}>Payment Method</Typography>
               <View style={s.cPaymentGroup}>
-                {["CASH", "ONLINE", "CARD"].map((method) => (
+                {(["CASH", "ONLINE", "CARD"] as const).map((method) => (
                   <TouchableOpacity
                     key={method}
                     style={[s.cPaymentBtn, completeMethod === method && s.cPaymentBtnActive]}
@@ -561,6 +582,16 @@ export const ClientDetail = ({ route, navigation }: any) => {
                   </TouchableOpacity>
                 ))}
               </View>
+
+              <Input
+                label="Completion Notes (optional)"
+                value={completeNotes}
+                onChangeText={setCompleteNotes}
+                placeholder="Healing notes, touch-up needed, etc."
+                multiline
+                numberOfLines={3}
+                style={{ height: 70, textAlignVertical: "top" }}
+              />
 
               <View style={s.cModalActions}>
                 <Button title="Cancel" variant="outline" onPress={() => setCompleteModalVisible(false)} style={{ flex: 1, marginRight: SPACING.small }} />

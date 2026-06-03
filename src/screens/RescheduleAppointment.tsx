@@ -8,6 +8,7 @@ import {
   Typography,
   Card,
   Button,
+  Input,
   DateTimePickerComponent,
 } from "../components";
 
@@ -20,6 +21,7 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
   const currentDateTime = new Date(appointment.appointmentAt);
   const [newDate, setNewDate] = useState(currentDateTime);
   const [newTime, setNewTime] = useState(currentDateTime);
+  const [duration, setDuration] = useState(String(appointment.durationMinutes || 60));
   const [loading, setLoading] = useState(false);
 
   const handleConfirmReschedule = async () => {
@@ -34,9 +36,13 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
         newTime.getMinutes()
       );
 
+      const parsedDuration = Number(duration);
       await AppointmentsApi.rescheduleAppointment(
         appointment.id,
-        combinedDateTime
+        combinedDateTime,
+        Number.isFinite(parsedDuration) && parsedDuration > 0
+          ? parsedDuration
+          : undefined
       );
 
       Alert.alert("Success", "Appointment rescheduled successfully", [
@@ -130,6 +136,14 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
             value={newTime}
             onChange={setNewTime}
             mode="time"
+          />
+
+          <Input
+            label="Estimated Duration (minutes)"
+            value={duration}
+            onChangeText={setDuration}
+            placeholder="60"
+            keyboardType="numeric"
           />
         </View>
 

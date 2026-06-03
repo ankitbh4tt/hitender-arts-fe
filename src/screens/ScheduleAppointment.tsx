@@ -19,6 +19,9 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
   const [appointmentDate, setAppointmentDate] = useState(new Date());
   const [appointmentTime, setAppointmentTime] = useState(new Date());
   const [tattooDetail, setTattooDetail] = useState("");
+  const [duration, setDuration] = useState("60");
+  const [advanceAmount, setAdvanceAmount] = useState("");
+  const [notes, setNotes] = useState("");
 
   const [loading, setLoading] = useState(false);
 
@@ -32,11 +35,17 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
       appointmentTime.getMinutes()
     );
 
+    const parsedDuration = Number(duration);
     const payload = {
       inquiryId,
-      clientId: client.id,
       appointmentAt: combinedDateTime.toISOString(),
       tattooDetail: tattooDetail || undefined,
+      durationMinutes:
+        Number.isFinite(parsedDuration) && parsedDuration > 0
+          ? parsedDuration
+          : undefined,
+      advanceAmount: advanceAmount ? Number(advanceAmount) : undefined,
+      notes: notes.trim() || undefined,
     };
 
     setLoading(true);
@@ -62,6 +71,9 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
     setAppointmentDate(new Date());
     setAppointmentTime(new Date());
     setTattooDetail("");
+    setDuration("60");
+    setAdvanceAmount("");
+    setNotes("");
   };
 
   return (
@@ -114,12 +126,38 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
           />
 
           <Input
+            label="Estimated Duration (minutes)"
+            value={duration}
+            onChangeText={setDuration}
+            placeholder="60"
+            keyboardType="numeric"
+          />
+
+          <Input
+            label="Advance / Deposit (optional)"
+            value={advanceAmount}
+            onChangeText={setAdvanceAmount}
+            placeholder="Advance amount collected"
+            keyboardType="numeric"
+          />
+
+          <Input
             label="Tattoo Execution Details"
             value={tattooDetail}
             onChangeText={setTattooDetail}
             placeholder="Final tattoo execution details (optional)"
             multiline
             numberOfLines={4}
+            style={styles.detailsInput}
+          />
+
+          <Input
+            label="Notes (optional)"
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Anything to remember for this session"
+            multiline
+            numberOfLines={3}
             style={styles.detailsInput}
           />
         </View>

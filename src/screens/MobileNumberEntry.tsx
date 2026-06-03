@@ -21,9 +21,9 @@ export const MobileNumberEntry = ({ navigation }: any) => {
     try {
       const response = await ClientsApi.resolveClientByMobile(mobile);
 
-      // Navigate to main app
+      // Navigate to main app (Clients tab → Inquiry, prefilled with the client)
       navigation.replace("CRMRoot", {
-        screen: "InquiriesTab",
+        screen: "ClientsTab",
         params: {
           screen: "Inquiry",
           params: response,
