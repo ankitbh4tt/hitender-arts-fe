@@ -23,7 +23,7 @@ const ClientsStack = createNativeStackNavigator();
 const FollowUpsStack = createNativeStackNavigator();
 const SettingsStack = createNativeStackNavigator();
 
-// Today tab — the day calendar home + appointment creation/editing.
+// Today tab - the day calendar home + appointment creation/editing.
 const TodayNavigator = () => (
   <TodayStack.Navigator screenOptions={{ headerShown: false }}>
     <TodayStack.Screen name="DayCalendar" component={DayCalendar} />
@@ -33,7 +33,7 @@ const TodayNavigator = () => (
   </TodayStack.Navigator>
 );
 
-// Clients tab — profiles, inquiries, and scheduling from a client.
+// Clients tab - profiles, inquiries, and scheduling from a client.
 const ClientsNavigator = () => (
   <ClientsStack.Navigator screenOptions={{ headerShown: false }}>
     <ClientsStack.Screen name="ClientsList" component={ClientsList} />

@@ -5,7 +5,7 @@ import { Dimensions, PixelRatio, Platform } from "react-native";
 // Guideline sizes are based on a standard ~375pt-wide handset (iPhone X).
 // On that device every scaled value equals its input, so existing phones look
 // pixel-identical; smaller phones shrink slightly, larger phones / tablets grow
-// — but the short-edge is clamped so tablets never blow up out of proportion.
+// - but the short-edge is clamped so tablets never blow up out of proportion.
 // ──────────────────────────────────────────────────────────────────────────
 
 const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get("window");
@@ -30,7 +30,7 @@ export const verticalScale = (size: number): number =>
   (LONG_EDGE / GUIDELINE_BASE_HEIGHT) * size;
 
 /**
- * Scale, but dampened — only moves `factor` of the way toward the full scale.
+ * Scale, but dampened - only moves `factor` of the way toward the full scale.
  * Great for spacing/radii where you want some growth but not 1:1 with width.
  */
 export const moderateScale = (size: number, factor = 0.5): number =>
@@ -49,7 +49,7 @@ export const SCREEN = {
   longEdge: LONG_EDGE,
   isSmall: SHORT_EDGE < 360,
   isTablet: IS_TABLET,
-  // Forms/content never stretch past this — keeps tablets readable & centered.
+  // Forms/content never stretch past this - keeps tablets readable & centered.
   maxContentWidth: IS_TABLET ? 560 : WINDOW_WIDTH,
 };
 
@@ -60,12 +60,12 @@ export const SCREEN = {
 // ──────────────────────────────────────────────────────────────────────────
 
 export const COLORS = {
-  // Brand — Jet black
+  // Brand - Jet black
   primary: "#141414", // header / dark surfaces
   primaryDark: "#0A0A0A",
   primarySoft: "#2B2B2B",
 
-  // Brand — Gold (single source of truth; ClientDetail used to diverge)
+  // Brand - Gold (single source of truth; ClientDetail used to diverge)
   secondary: "#D4AF37",
   secondaryDark: "#B8911F",
   secondaryLight: "#F0D98A",
@@ -122,11 +122,11 @@ export const statusVisual = (code?: string): StatusVisual =>
   (code && STATUS_VISUALS[code]) || {
     color: COLORS.textLight,
     tint: "rgba(138,138,138,0.12)",
-    label: "—",
+    label: "-",
   };
 
 // ──────────────────────────────────────────────────────────────────────────
-// Spacing — scaled so layouts breathe correctly on every device.
+// Spacing - scaled so layouts breathe correctly on every device.
 // ──────────────────────────────────────────────────────────────────────────
 
 export const SPACING = {
@@ -202,7 +202,7 @@ export const SHADOWS = {
 };
 
 // ──────────────────────────────────────────────────────────────────────────
-// Motion — shared timing so animations feel consistent app-wide.
+// Motion - shared timing so animations feel consistent app-wide.
 // ──────────────────────────────────────────────────────────────────────────
 
 export const ANIM = {

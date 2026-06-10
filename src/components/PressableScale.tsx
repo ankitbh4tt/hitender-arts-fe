@@ -18,7 +18,7 @@ interface PressableScaleProps extends Omit<PressableProps, "style"> {
 }
 
 /**
- * A press target that springs down slightly while held — the tactile feedback
+ * A press target that springs down slightly while held - the tactile feedback
  * used across buttons, cards and the FAB. Runs on the native driver so it stays
  * smooth even while JS is busy.
  */

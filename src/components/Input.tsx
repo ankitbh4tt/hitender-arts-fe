@@ -28,6 +28,7 @@ export const Input = ({
   multiline,
   onFocus,
   onBlur,
+  accessibilityLabel,
   ...props
 }: InputProps) => {
   const [focused, setFocused] = useState(false);
@@ -87,6 +88,8 @@ export const Input = ({
           multiline={multiline}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          accessibilityLabel={accessibilityLabel ?? label}
+          {...(error ? { accessibilityHint: error } : null)}
           {...props}
         />
       </Animated.View>

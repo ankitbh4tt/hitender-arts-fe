@@ -24,6 +24,9 @@ interface ButtonProps {
   icon?: keyof typeof Ionicons.glyphMap;
   style?: StyleProp<ViewStyle>;
   fullWidth?: boolean;
+  /** Defaults to the button title; override when the title isn't descriptive. */
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 const HEIGHTS: Record<Size, number> = {
@@ -42,6 +45,8 @@ export const Button = ({
   icon,
   style,
   fullWidth = true,
+  accessibilityLabel,
+  accessibilityHint,
 }: ButtonProps) => {
   const isDisabled = disabled || loading;
 
@@ -85,6 +90,9 @@ export const Button = ({
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={[
         styles.base,
         { height: HEIGHTS[size], backgroundColor: bg() },

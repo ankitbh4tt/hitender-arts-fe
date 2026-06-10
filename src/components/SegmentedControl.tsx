@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { COLORS, SPACING, RADIUS, ANIM, SHADOWS } from "../constants/theme";
 import { Typography } from "./Typography";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 
 export interface Segment {
   key: string;
@@ -34,6 +35,7 @@ export const SegmentedControl = ({
   style,
   tone = "light",
 }: SegmentedControlProps) => {
+  const reduceMotion = useReducedMotion();
   const [trackWidth, setTrackWidth] = useState(0);
   const translateX = useRef(new Animated.Value(0)).current;
 
@@ -42,14 +44,19 @@ export const SegmentedControl = ({
   const activeIndex = Math.max(0, segments.findIndex((s) => s.key === value));
 
   useEffect(() => {
+    const target = activeIndex * segWidth;
+    if (reduceMotion) {
+      translateX.setValue(target);
+      return;
+    }
     Animated.spring(translateX, {
-      toValue: activeIndex * segWidth,
+      toValue: target,
       useNativeDriver: true,
       damping: ANIM.spring.damping,
       stiffness: ANIM.spring.stiffness,
       mass: ANIM.spring.mass,
     }).start();
-  }, [activeIndex, segWidth]);
+  }, [activeIndex, segWidth, reduceMotion]);
 
   const onLayout = (e: LayoutChangeEvent) =>
     setTrackWidth(e.nativeEvent.layout.width);
@@ -80,6 +87,10 @@ export const SegmentedControl = ({
             key={seg.key}
             style={styles.segment}
             onPress={() => onChange(seg.key)}
+            accessibilityRole="tab"
+            accessibilityLabel={seg.label}
+            accessibilityState={{ selected: active }}
+            hitSlop={{ top: 8, bottom: 8 }}
           >
             <Typography
               variant="label"

@@ -18,7 +18,7 @@ import { AppointmentsApi } from "../api/appointments.api";
 const DURATION_PRESETS = ["30", "60", "90", "120", "180"];
 
 // One-shot appointment creation: resolves (or creates) the client by mobile,
-// logs an inquiry, then schedules the appointment — reusing existing endpoints.
+// logs an inquiry, then schedules the appointment - reusing existing endpoints.
 export const QuickAddAppointment = ({ navigation }: any) => {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");

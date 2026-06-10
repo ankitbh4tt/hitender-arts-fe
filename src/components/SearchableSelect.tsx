@@ -58,6 +58,10 @@ export const SearchableSelect = ({
         style={[styles.trigger, error ? styles.triggerError : null]}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={label ?? "Select"}
+        accessibilityValue={{ text: value ? value.label : placeholder }}
+        accessibilityHint="Opens a searchable list"
       >
         <Typography
           variant="body"
@@ -88,7 +92,12 @@ export const SearchableSelect = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Typography variant="h3">{label || "Select"}</Typography>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Ionicons name="close" size={28} color={COLORS.text} />
               </TouchableOpacity>
             </View>
@@ -106,6 +115,8 @@ export const SearchableSelect = ({
                 onChangeText={setSearchQuery}
                 placeholder="Search..."
                 placeholderTextColor={COLORS.textLight}
+                accessibilityLabel="Search options"
+                autoCorrect={false}
               />
             </View>
 
@@ -119,6 +130,9 @@ export const SearchableSelect = ({
                     value?.id === item.id ? styles.optionSelected : null,
                   ]}
                   onPress={() => handleSelect(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
+                  accessibilityState={{ selected: value?.id === item.id }}
                 >
                   <Typography
                     variant="body"

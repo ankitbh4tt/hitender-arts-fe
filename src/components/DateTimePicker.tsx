@@ -57,6 +57,10 @@ export const DateTimePickerComponent = ({
         style={[styles.trigger, error ? styles.triggerError : null]}
         onPress={() => setShow(true)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={label ?? (mode === "date" ? "Date" : "Time")}
+        accessibilityValue={{ text: formatDisplay() }}
+        accessibilityHint={mode === "date" ? "Opens the date picker" : "Opens the time picker"}
       >
         <Ionicons
           name={mode === "date" ? "calendar-outline" : "time-outline"}

@@ -190,6 +190,8 @@ export const DayCalendar = ({ navigation }: any) => {
               scaleTo={0.92}
               onPress={() => goToDate(new Date())}
               style={styles.todayPill}
+              accessibilityRole="button"
+              accessibilityLabel="Jump to today"
             >
               <Typography variant="overline" color={COLORS.primary}>
                 Today
@@ -205,6 +207,8 @@ export const DayCalendar = ({ navigation }: any) => {
           scaleTo={0.9}
           onPress={() => goToDate(addDays(selectedDate, -1))}
           style={styles.stepBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Previous day"
         >
           <Ionicons name="chevron-back" size={scale(20)} color={COLORS.text} />
         </PressableScale>
@@ -221,6 +225,8 @@ export const DayCalendar = ({ navigation }: any) => {
           scaleTo={0.9}
           onPress={() => goToDate(addDays(selectedDate, 1))}
           style={styles.stepBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Next day"
         >
           <Ionicons name="chevron-forward" size={scale(20)} color={COLORS.text} />
         </PressableScale>
@@ -275,6 +281,9 @@ export const DayCalendar = ({ navigation }: any) => {
                           onPress={() => handleClientPress(apt)}
                           scaleTo={0.99}
                           style={{ flex: 1 }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`View ${apt.client?.name || "client"}`}
+                          accessibilityHint="Opens the client profile"
                         >
                           <Typography variant="body" weight="semibold" numberOfLines={1}>
                             {apt.client?.name || "Unknown client"}
@@ -312,6 +321,8 @@ export const DayCalendar = ({ navigation }: any) => {
                           style={styles.iconBtn}
                           scaleTo={0.9}
                           onPress={() => apt.client && openWhatsApp(apt.client.mobile, "")}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Message ${apt.client?.name || "client"} on WhatsApp`}
                         >
                           <Ionicons name="logo-whatsapp" size={scale(18)} color={COLORS.whatsapp} />
                         </PressableScale>
@@ -323,6 +334,9 @@ export const DayCalendar = ({ navigation }: any) => {
                               scaleTo={0.94}
                               disabled={isProcessing}
                               onPress={() => openComplete(apt.id)}
+                              accessibilityRole="button"
+                              accessibilityLabel="Complete appointment"
+                              accessibilityState={{ disabled: isProcessing }}
                             >
                               <Ionicons name="checkmark-circle" size={scale(16)} color={COLORS.primary} />
                               <Typography variant="label" color={COLORS.primary} style={{ marginLeft: 4 }}>
@@ -335,6 +349,9 @@ export const DayCalendar = ({ navigation }: any) => {
                               scaleTo={0.9}
                               disabled={isProcessing}
                               onPress={() => handleMore(apt)}
+                              accessibilityRole="button"
+                              accessibilityLabel="More actions"
+                              accessibilityHint="Reschedule, mark no-show or cancel"
                             >
                               <Ionicons name="ellipsis-horizontal" size={scale(20)} color={COLORS.textMuted} />
                             </PressableScale>
@@ -352,7 +369,11 @@ export const DayCalendar = ({ navigation }: any) => {
       )}
 
       {/* FAB */}
-      <FAB onPress={() => navigation.navigate("QuickAddAppointment")} />
+      <FAB
+        onPress={() => navigation.navigate("QuickAddAppointment")}
+        accessibilityLabel="Quick add appointment"
+        accessibilityHint="Opens a form to book a new appointment"
+      />
 
       {/* Complete modal */}
       <Modal
@@ -387,6 +408,9 @@ export const DayCalendar = ({ navigation }: any) => {
                     scaleTo={0.94}
                     style={[styles.payBtn, active && styles.payBtnActive]}
                     onPress={() => setMethod(m)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={`Payment method ${m}`}
+                    accessibilityState={{ selected: active, checked: active }}
                   >
                     <Typography
                       variant="label"

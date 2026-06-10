@@ -305,7 +305,13 @@ export const ClientDetail = ({ route, navigation }: any) => {
       {/* Collapsible Header */}
       <Animated.View style={[s.header, { height: headerHeight }]}>
         <View style={s.headerTop}>
-          <PressableScale onPress={() => navigation.goBack()} style={s.hBtn} hitSlop={HIT_SLOP}>
+          <PressableScale
+            onPress={() => navigation.goBack()}
+            style={s.hBtn}
+            hitSlop={HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Ionicons name="arrow-back" size={scale(22)} color={COLORS.white} />
           </PressableScale>
           <PressableScale
@@ -317,6 +323,8 @@ export const ClientDetail = ({ route, navigation }: any) => {
             }}
             style={s.hBtn}
             hitSlop={HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel="Edit client"
           >
             <Ionicons name="pencil" size={scale(18)} color={COLORS.white} />
           </PressableScale>
@@ -482,7 +490,12 @@ export const ClientDetail = ({ route, navigation }: any) => {
       </Animated.ScrollView>
 
       {/* FAB */}
-      <FAB icon="add" onPress={() => setQuickAddVisible(true)} />
+      <FAB
+        icon="add"
+        onPress={() => setQuickAddVisible(true)}
+        accessibilityLabel="Client actions"
+        accessibilityHint="Add inquiry, schedule appointment, or send aftercare"
+      />
 
       {/* Edit Client Modal */}
       <Modal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => setEditModalVisible(false)}>
@@ -570,7 +583,13 @@ export const ClientDetail = ({ route, navigation }: any) => {
 
 // ── Small presentational helpers ──
 const QuickAction = ({ icon, tint, color, label, onPress }: any) => (
-  <PressableScale style={s.qBtn} scaleTo={0.92} onPress={onPress}>
+  <PressableScale
+    style={s.qBtn}
+    scaleTo={0.92}
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={label}
+  >
     <View style={[s.qIcon, { backgroundColor: tint }]}><Ionicons name={icon} size={scale(21)} color={color} /></View>
     <Typography variant="overline" color={COLORS.textMuted} style={s.qLabel}>{label}</Typography>
   </PressableScale>
@@ -578,7 +597,9 @@ const QuickAction = ({ icon, tint, color, label, onPress }: any) => (
 
 const DetailRow = ({ icon, label, value, onPress }: any) => {
   const Wrap: any = onPress ? PressableScale : View;
-  const wrapProps = onPress ? { onPress, scaleTo: 0.99 } : {};
+  const wrapProps = onPress
+    ? { onPress, scaleTo: 0.99, accessibilityRole: "button", accessibilityLabel: `${label}: ${value}` }
+    : {};
   return (
     <Wrap style={s.detRow} {...wrapProps}>
       <View style={s.detIcon}><Ionicons name={icon} size={scale(18)} color={COLORS.secondaryDark} /></View>
@@ -592,7 +613,13 @@ const DetailRow = ({ icon, label, value, onPress }: any) => {
 };
 
 const SheetOption = ({ icon, color, label, onPress, last }: any) => (
-  <PressableScale style={[s.qaOpt, last && { borderBottomWidth: 0 }]} scaleTo={0.98} onPress={onPress}>
+  <PressableScale
+    style={[s.qaOpt, last && { borderBottomWidth: 0 }]}
+    scaleTo={0.98}
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={label}
+  >
     <View style={[s.qaIcon, { backgroundColor: `${color}1A` }]}><Ionicons name={icon} size={scale(20)} color={color} /></View>
     <Typography variant="body" weight="medium" style={{ marginLeft: SPACING.medium }}>{label}</Typography>
   </PressableScale>

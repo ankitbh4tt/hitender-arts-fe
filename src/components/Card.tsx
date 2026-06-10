@@ -10,9 +10,19 @@ interface CardProps {
   onPress?: () => void;
   /** "elevated" (default) has a soft shadow; "flat" is border-only. */
   variant?: "elevated" | "flat";
+  /** Screen-reader label for the pressable card (recommended when onPress is set). */
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
-export const Card = ({ children, style, onPress, variant = "elevated" }: CardProps) => {
+export const Card = ({
+  children,
+  style,
+  onPress,
+  variant = "elevated",
+  accessibilityLabel,
+  accessibilityHint,
+}: CardProps) => {
   const cardStyle = [
     styles.card,
     variant === "elevated" ? SHADOWS.light : null,
@@ -21,7 +31,14 @@ export const Card = ({ children, style, onPress, variant = "elevated" }: CardPro
 
   if (onPress) {
     return (
-      <PressableScale onPress={onPress} scaleTo={0.985} style={cardStyle}>
+      <PressableScale
+        onPress={onPress}
+        scaleTo={0.985}
+        style={cardStyle}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+      >
         {children}
       </PressableScale>
     );

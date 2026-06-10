@@ -166,6 +166,9 @@ export const FollowUpsList = ({ navigation }: any) => {
                         style={{ flex: 1 }}
                         scaleTo={0.99}
                         onPress={() => goToClient(fu)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`View ${fu.client?.name || "client"}`}
+                        accessibilityHint="Opens the client profile"
                       >
                         <Typography variant="body" weight="semibold" numberOfLines={1}>
                           {fu.client?.name || "Unknown client"}
@@ -209,6 +212,8 @@ export const FollowUpsList = ({ navigation }: any) => {
                           style={styles.waBtn}
                           scaleTo={0.95}
                           onPress={() => handleWhatsApp(fu)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Send WhatsApp reminder"
                         >
                           <Ionicons name="logo-whatsapp" size={scale(17)} color={COLORS.white} />
                           <Typography variant="label" color={COLORS.white} style={{ marginLeft: 6 }}>
@@ -220,6 +225,9 @@ export const FollowUpsList = ({ navigation }: any) => {
                           scaleTo={0.95}
                           disabled={processingId === fu.id}
                           onPress={() => handleMarkComplete(fu)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Mark follow-up done"
+                          accessibilityState={{ disabled: processingId === fu.id, busy: processingId === fu.id }}
                         >
                           {processingId === fu.id ? (
                             <ActivityIndicator size="small" color={COLORS.primary} />

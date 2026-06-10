@@ -41,6 +41,7 @@ export const Header = ({
             hitSlop={HIT_SLOP}
             style={[styles.backBtn, dark ? styles.backBtnDark : styles.backBtnLight]}
             accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
             <Ionicons name="chevron-back" size={FONT_SIZE.h3 + 4} color={iconColor} />
           </PressableScale>

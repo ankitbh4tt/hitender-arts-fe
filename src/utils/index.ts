@@ -47,7 +47,7 @@ export const formatTime = (value: string | Date): string =>
     hour12: true,
   });
 
-// Local-time "YYYY-MM-DD" (do NOT use toISOString — that shifts by timezone).
+// Local-time "YYYY-MM-DD" (do NOT use toISOString - that shifts by timezone).
 export const toDateKey = (d: Date): string => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

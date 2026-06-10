@@ -12,7 +12,7 @@ interface EmptyStateProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Friendly placeholder for empty lists — gently animated in. */
+/** Friendly placeholder for empty lists - gently animated in. */
 export const EmptyState = ({
   icon = "sparkles-outline",
   title,

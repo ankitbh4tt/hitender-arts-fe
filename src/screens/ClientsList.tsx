@@ -75,7 +75,14 @@ export const ClientsList = ({ navigation }: any) => {
 
   const renderClient = ({ item, index }: { item: Client; index: number }) => (
     <FadeInView index={Math.min(index, 8)}>
-      <Card style={styles.clientCard} onPress={() => handleClientPress(item)}>
+      <Card
+        style={styles.clientCard}
+        onPress={() => handleClientPress(item)}
+        accessibilityLabel={`${item.name || "Unknown"}, ${item.mobile}${
+          item.currentStatus?.label ? `, ${item.currentStatus.label}` : ""
+        }`}
+        accessibilityHint="Opens the client profile"
+      >
         <View style={styles.clientRow}>
           <View style={styles.avatar}>
             <Typography variant="h3" color={COLORS.secondaryDark} weight="bold">
@@ -95,7 +102,7 @@ export const ClientsList = ({ navigation }: any) => {
           </View>
           <View style={styles.statusBadge}>
             <Typography variant="overline" color={COLORS.secondaryDark}>
-              {item.currentStatus?.label || "—"}
+              {item.currentStatus?.label || "-"}
             </Typography>
           </View>
           <Ionicons name="chevron-forward" size={scale(18)} color={COLORS.textLight} />
@@ -153,7 +160,11 @@ export const ClientsList = ({ navigation }: any) => {
         />
       )}
 
-      <FAB onPress={handleAddInquiry} />
+      <FAB
+        onPress={handleAddInquiry}
+        accessibilityLabel="New inquiry"
+        accessibilityHint="Opens a form to log a new client inquiry"
+      />
     </View>
   );
 };

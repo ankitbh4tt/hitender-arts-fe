@@ -1,5 +1,11 @@
 import React from "react";
-import { Text, TextStyle, StyleSheet, StyleProp } from "react-native";
+import {
+  Text,
+  TextStyle,
+  StyleSheet,
+  StyleProp,
+  AccessibilityRole,
+} from "react-native";
 import { COLORS, FONT_SIZE } from "../constants/theme";
 
 type Variant =
@@ -22,6 +28,10 @@ interface TypographyProps {
   align?: "left" | "center" | "right";
   numberOfLines?: number;
   weight?: Weight;
+  /** Override the inferred accessibility role (headings default to "header"). */
+  accessibilityRole?: AccessibilityRole;
+  /** Hide from the screen reader (e.g. purely decorative glyphs). */
+  accessibilityElementsHidden?: boolean;
 }
 
 const WEIGHTS: Record<Weight, TextStyle["fontWeight"]> = {
@@ -31,6 +41,8 @@ const WEIGHTS: Record<Weight, TextStyle["fontWeight"]> = {
   bold: "700",
 };
 
+const HEADING_VARIANTS = new Set<Variant>(["display", "h1", "h2", "h3"]);
+
 export const Typography = ({
   variant = "body",
   color = COLORS.text,
@@ -39,7 +51,10 @@ export const Typography = ({
   align = "left",
   numberOfLines,
   weight,
+  accessibilityRole,
+  accessibilityElementsHidden,
 }: TypographyProps) => {
+  const role = accessibilityRole ?? (HEADING_VARIANTS.has(variant) ? "header" : undefined);
   return (
     <Text
       style={[
@@ -49,7 +64,13 @@ export const Typography = ({
         style,
       ]}
       numberOfLines={numberOfLines}
-      allowFontScaling={false}
+      // Honor the user's OS text-size preference, but cap the growth so premium
+      // layouts never break at the largest accessibility sizes.
+      allowFontScaling
+      maxFontSizeMultiplier={1.3}
+      accessibilityRole={role}
+      accessibilityElementsHidden={accessibilityElementsHidden}
+      importantForAccessibility={accessibilityElementsHidden ? "no-hide-descendants" : undefined}
     >
       {children}
     </Text>

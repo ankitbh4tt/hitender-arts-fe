@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, ViewStyle, StyleProp, Easing } from "react-native";
 import { ANIM } from "../constants/theme";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 
 interface FadeInViewProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
-  /** Index in a list — multiplies the stagger delay for a cascading entrance. */
+  /** Index in a list - multiplies the stagger delay for a cascading entrance. */
   index?: number;
   /** Extra delay (ms) on top of the staggered index delay. */
   delay?: number;
@@ -15,7 +16,8 @@ interface FadeInViewProps {
 
 /**
  * Fades + lifts its children in on mount. Pass `index` inside a mapped list to
- * get a smooth staggered cascade. Native-driven, so it never janks.
+ * get a smooth staggered cascade. Native-driven, so it never janks. Respects the
+ * OS "Reduce Motion" setting by appearing instantly with no movement.
  */
 export const FadeInView = ({
   children,
@@ -24,17 +26,25 @@ export const FadeInView = ({
   delay = 0,
   offsetY = 12,
 }: FadeInViewProps) => {
+  const reduceMotion = useReducedMotion();
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(progress, {
+    if (reduceMotion) {
+      // Appear immediately, no autonomous movement.
+      progress.setValue(1);
+      return;
+    }
+    const animation = Animated.timing(progress, {
       toValue: 1,
       duration: ANIM.base,
       delay: delay + index * ANIM.stagger,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start();
-  }, []);
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [reduceMotion]);
 
   return (
     <Animated.View
