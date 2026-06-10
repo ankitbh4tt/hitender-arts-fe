@@ -4,15 +4,20 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { COLORS, SPACING } from "../constants/theme";
-import { Typography } from "../components";
+import { COLORS, SPACING, RADIUS, SCREEN, scale } from "../constants/theme";
+import {
+  Typography,
+  Header,
+  SegmentedControl,
+  EmptyState,
+  PressableScale,
+  FadeInView,
+} from "../components";
 import { FollowUpsApi } from "../api/followups.api";
 import { FollowUp } from "../api/types";
 import { useSettingsStore } from "../config/settingsStore";
@@ -20,7 +25,7 @@ import { fillTemplate, followUpLabel, formatDate, openWhatsApp } from "../utils"
 
 type FilterKey = "today" | "week" | "completed";
 
-const FILTERS: { key: FilterKey; label: string }[] = [
+const FILTERS = [
   { key: "today", label: "Due Today" },
   { key: "week", label: "This Week" },
   { key: "completed", label: "Completed" },
@@ -107,33 +112,14 @@ export const FollowUpsList = ({ navigation }: any) => {
 
   return (
     <View style={styles.root}>
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: COLORS.primary }} />
-      <View style={styles.header}>
-        <Typography variant="h2" color={COLORS.white}>
-          Follow-Ups
-        </Typography>
-        <Typography variant="caption" color={COLORS.secondary}>
-          Healing check-ins
-        </Typography>
-      </View>
+      <Header title="Follow-Ups" subtitle="Healing Check-ins" />
 
-      {/* Segmented filter */}
-      <View style={styles.segment}>
-        {FILTERS.map((f) => (
-          <TouchableOpacity
-            key={f.key}
-            style={[styles.segBtn, filter === f.key && styles.segBtnActive]}
-            onPress={() => setFilter(f.key)}
-          >
-            <Typography
-              variant="caption"
-              color={filter === f.key ? COLORS.primary : COLORS.textLight}
-              style={filter === f.key ? { fontWeight: "700" } : undefined}
-            >
-              {f.label}
-            </Typography>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.segmentWrap}>
+        <SegmentedControl
+          segments={FILTERS}
+          value={filter}
+          onChange={(k) => setFilter(k as FilterKey)}
+        />
       </View>
 
       {loading && !refreshing ? (
@@ -143,89 +129,117 @@ export const FollowUpsList = ({ navigation }: any) => {
       ) : (
         <ScrollView
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.secondary}
+              colors={[COLORS.secondary]}
+            />
+          }
         >
           {items.length === 0 ? (
-            <View style={styles.center}>
-              <Ionicons name="checkmark-done-outline" size={64} color={COLORS.border} />
-              <Typography variant="body" color={COLORS.textLight} style={{ marginTop: 12 }}>
-                {filter === "completed" ? "No completed follow-ups" : "Nothing due here"}
-              </Typography>
-            </View>
+            <EmptyState
+              icon="checkmark-done-outline"
+              title={filter === "completed" ? "No completed follow-ups" : "All clear"}
+              subtitle={
+                filter === "completed"
+                  ? "Completed check-ins will appear here"
+                  : "Nothing due here right now"
+              }
+            />
           ) : (
-            items.map((fu) => {
+            items.map((fu, idx) => {
               const tattoo =
                 fu.appointment?.tattooDetail ||
                 fu.appointment?.inquiry?.intent ||
                 "Tattoo session";
               const overdue = isOverdue(fu);
+              const done = fu.status === "COMPLETED";
+              const accent = done ? COLORS.success : overdue ? COLORS.error : COLORS.secondary;
               return (
-                <View key={fu.id} style={styles.card}>
-                  <View style={styles.cardTop}>
-                    <TouchableOpacity style={{ flex: 1 }} onPress={() => goToClient(fu)}>
-                      <Typography variant="body" style={{ fontWeight: "600" }}>
-                        {fu.client?.name || "Unknown client"}
-                      </Typography>
-                      <Typography variant="caption" color={COLORS.textLight}>
-                        {fu.client?.mobile}
-                      </Typography>
-                    </TouchableOpacity>
-                    <View style={[styles.typeBadge, { backgroundColor: COLORS.secondary + "22" }]}>
-                      <Typography variant="caption" color={COLORS.primary}>
-                        {followUpLabel(fu.type)}
-                      </Typography>
+                <FadeInView key={fu.id} index={Math.min(idx, 8)}>
+                  <View style={[styles.card, { borderLeftColor: accent }]}>
+                    <View style={styles.cardTop}>
+                      <PressableScale
+                        style={{ flex: 1 }}
+                        scaleTo={0.99}
+                        onPress={() => goToClient(fu)}
+                      >
+                        <Typography variant="body" weight="semibold" numberOfLines={1}>
+                          {fu.client?.name || "Unknown client"}
+                        </Typography>
+                        <Typography variant="caption" color={COLORS.textLight}>
+                          {fu.client?.mobile}
+                        </Typography>
+                      </PressableScale>
+                      <View style={styles.typeBadge}>
+                        <Typography variant="overline" color={COLORS.secondaryDark}>
+                          {followUpLabel(fu.type)}
+                        </Typography>
+                      </View>
                     </View>
-                  </View>
 
-                  <Typography variant="caption" color={COLORS.text} numberOfLines={2} style={{ marginTop: 6 }}>
-                    {tattoo}
-                  </Typography>
-
-                  <View style={styles.metaRow}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={14}
-                      color={overdue ? COLORS.error : COLORS.textLight}
-                    />
                     <Typography
                       variant="caption"
-                      color={overdue ? COLORS.error : COLORS.textLight}
-                      style={{ marginLeft: 4 }}
+                      color={COLORS.textMuted}
+                      numberOfLines={2}
+                      style={{ marginTop: 6 }}
                     >
-                      {fu.status === "COMPLETED" && fu.completedAt
-                        ? `Done ${formatDate(fu.completedAt)}`
-                        : `Due ${formatDate(fu.dueDate)}${overdue ? " · overdue" : ""}`}
+                      {tattoo}
                     </Typography>
-                  </View>
 
-                  {fu.status === "PENDING" && (
-                    <View style={styles.actions}>
-                      <TouchableOpacity style={styles.waBtn} onPress={() => handleWhatsApp(fu)}>
-                        <Ionicons name="logo-whatsapp" size={18} color={COLORS.white} />
-                        <Typography variant="caption" color={COLORS.white} style={{ marginLeft: 6 }}>
-                          Send Reminder
-                        </Typography>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.doneBtn}
-                        disabled={processingId === fu.id}
-                        onPress={() => handleMarkComplete(fu)}
-                      >
-                        {processingId === fu.id ? (
-                          <ActivityIndicator size="small" color={COLORS.primary} />
-                        ) : (
-                          <Typography variant="caption" color={COLORS.primary}>
-                            Mark Done
-                          </Typography>
-                        )}
-                      </TouchableOpacity>
+                    <View style={styles.metaRow}>
+                      <Ionicons
+                        name={done ? "checkmark-circle" : "calendar-outline"}
+                        size={scale(14)}
+                        color={accent}
+                      />
+                      <Typography variant="caption" color={accent} style={{ marginLeft: 4 }}>
+                        {done && fu.completedAt
+                          ? `Done ${formatDate(fu.completedAt)}`
+                          : `Due ${formatDate(fu.dueDate)}${overdue ? " · overdue" : ""}`}
+                      </Typography>
                     </View>
-                  )}
-                </View>
+
+                    {fu.status === "PENDING" && (
+                      <View style={styles.actions}>
+                        <PressableScale
+                          style={styles.waBtn}
+                          scaleTo={0.95}
+                          onPress={() => handleWhatsApp(fu)}
+                        >
+                          <Ionicons name="logo-whatsapp" size={scale(17)} color={COLORS.white} />
+                          <Typography variant="label" color={COLORS.white} style={{ marginLeft: 6 }}>
+                            Send Reminder
+                          </Typography>
+                        </PressableScale>
+                        <PressableScale
+                          style={styles.doneBtn}
+                          scaleTo={0.95}
+                          disabled={processingId === fu.id}
+                          onPress={() => handleMarkComplete(fu)}
+                        >
+                          {processingId === fu.id ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} />
+                          ) : (
+                            <>
+                              <Ionicons name="checkmark" size={scale(16)} color={COLORS.primary} />
+                              <Typography variant="label" color={COLORS.primary} style={{ marginLeft: 4 }}>
+                                Mark Done
+                              </Typography>
+                            </>
+                          )}
+                        </PressableScale>
+                      </View>
+                    )}
+                  </View>
+                </FadeInView>
               );
             })
           )}
-          <View style={{ height: 24 }} />
+          <View style={{ height: SPACING.large }} />
         </ScrollView>
       )}
     </View>
@@ -234,53 +248,60 @@ export const FollowUpsList = ({ navigation }: any) => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.background },
-  header: {
-    backgroundColor: COLORS.primary,
+  segmentWrap: {
     paddingHorizontal: SPACING.large,
-    paddingBottom: SPACING.medium,
+    paddingTop: SPACING.medium,
+    paddingBottom: SPACING.small,
+    width: "100%",
+    maxWidth: SCREEN.maxContentWidth,
+    alignSelf: "center",
+  },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  listContent: {
+    paddingHorizontal: SPACING.large,
     paddingTop: SPACING.small,
+    width: "100%",
+    maxWidth: SCREEN.maxContentWidth,
+    alignSelf: "center",
   },
-  segment: {
-    flexDirection: "row",
-    backgroundColor: COLORS.card,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  segBtn: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: SPACING.medium,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  segBtnActive: { borderBottomColor: COLORS.secondary },
-  center: { alignItems: "center", justifyContent: "center", paddingVertical: 64 },
-  listContent: { padding: SPACING.medium },
   card: {
     backgroundColor: COLORS.card,
-    borderRadius: 10,
+    borderRadius: RADIUS.lg,
     padding: SPACING.medium,
     marginBottom: SPACING.medium,
     borderWidth: 1,
     borderColor: COLORS.border,
+    borderLeftWidth: 4,
   },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  typeBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
-  metaRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
-  actions: { flexDirection: "row", alignItems: "center", gap: SPACING.medium, marginTop: SPACING.medium },
+  typeBadge: {
+    backgroundColor: COLORS.secondaryTint,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 4,
+    borderRadius: RADIUS.pill,
+  },
+  metaRow: { flexDirection: "row", alignItems: "center", marginTop: SPACING.small },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.medium,
+    marginTop: SPACING.medium,
+  },
   waBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#25D366",
+    backgroundColor: COLORS.whatsapp,
     paddingHorizontal: SPACING.medium,
     paddingVertical: SPACING.small,
-    borderRadius: 8,
+    borderRadius: RADIUS.md,
   },
   doneBtn: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: SPACING.medium,
     paddingVertical: SPACING.small,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
   },
 });

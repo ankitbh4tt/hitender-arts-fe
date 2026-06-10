@@ -1,12 +1,22 @@
-import React from "react";
-import { View, TextInput, TextInputProps, StyleSheet, ViewStyle } from "react-native";
-import { COLORS, SPACING } from "../constants/theme";
+import React, { useRef, useState } from "react";
+import {
+  View,
+  TextInput,
+  TextInputProps,
+  StyleSheet,
+  ViewStyle,
+  Animated,
+  StyleProp,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, RADIUS, FONT_SIZE, ANIM } from "../constants/theme";
 import { Typography } from "./Typography";
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
-  containerStyle?: ViewStyle;
+  containerStyle?: StyleProp<ViewStyle>;
+  icon?: keyof typeof Ionicons.glyphMap;
 }
 
 export const Input = ({
@@ -14,8 +24,40 @@ export const Input = ({
   error,
   style,
   containerStyle,
+  icon,
+  multiline,
+  onFocus,
+  onBlur,
   ...props
 }: InputProps) => {
+  const [focused, setFocused] = useState(false);
+  const focus = useRef(new Animated.Value(0)).current;
+
+  const animate = (to: number) =>
+    Animated.timing(focus, {
+      toValue: to,
+      duration: ANIM.fast,
+      useNativeDriver: false,
+    }).start();
+
+  const handleFocus: NonNullable<TextInputProps["onFocus"]> = (e) => {
+    setFocused(true);
+    animate(1);
+    onFocus?.(e);
+  };
+  const handleBlur: NonNullable<TextInputProps["onBlur"]> = (e) => {
+    setFocused(false);
+    animate(0);
+    onBlur?.(e);
+  };
+
+  const borderColor = error
+    ? COLORS.error
+    : focus.interpolate({
+        inputRange: [0, 1],
+        outputRange: [COLORS.border, COLORS.secondary],
+      });
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
@@ -23,17 +65,33 @@ export const Input = ({
           {label}
         </Typography>
       )}
-      <TextInput
-        style={[styles.input, error ? styles.inputError : null, style]}
-        placeholderTextColor={COLORS.textLight}
-        {...props}
-      />
+      <Animated.View
+        style={[
+          styles.field,
+          multiline && styles.fieldMultiline,
+          { borderColor },
+          focused && !error ? styles.fieldFocused : null,
+        ]}
+      >
+        {icon ? (
+          <Ionicons
+            name={icon}
+            size={FONT_SIZE.body + 2}
+            color={focused ? COLORS.secondaryDark : COLORS.textLight}
+            style={styles.icon}
+          />
+        ) : null}
+        <TextInput
+          style={[styles.input, multiline && styles.inputMultiline, style]}
+          placeholderTextColor={COLORS.textLight}
+          multiline={multiline}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          {...props}
+        />
+      </Animated.View>
       {error && (
-        <Typography
-          variant="caption"
-          color={COLORS.error}
-          style={styles.errorText}
-        >
+        <Typography variant="caption" color={COLORS.error} style={styles.errorText}>
           {error}
         </Typography>
       )}
@@ -48,17 +106,32 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: SPACING.tiny,
   },
-  input: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
+  field: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 8,
-    padding: SPACING.medium,
-    fontSize: 16,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.medium,
+  },
+  fieldMultiline: {
+    alignItems: "flex-start",
+  },
+  fieldFocused: {
+    backgroundColor: COLORS.white,
+  },
+  icon: {
+    marginRight: SPACING.small,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: SPACING.medium,
+    fontSize: FONT_SIZE.body,
     color: COLORS.text,
   },
-  inputError: {
-    borderColor: COLORS.error,
+  inputMultiline: {
+    textAlignVertical: "top",
   },
   errorText: {
     marginTop: SPACING.tiny,

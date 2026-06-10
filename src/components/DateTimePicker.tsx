@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING } from "../constants/theme";
+import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../constants/theme";
 import { Typography } from "./Typography";
 
 interface DateTimePickerProps {
@@ -58,12 +58,16 @@ export const DateTimePickerComponent = ({
         onPress={() => setShow(true)}
         activeOpacity={0.7}
       >
-        <Typography variant="body">{formatDisplay()}</Typography>
         <Ionicons
           name={mode === "date" ? "calendar-outline" : "time-outline"}
-          size={20}
-          color={COLORS.textLight}
+          size={FONT_SIZE.body + 2}
+          color={COLORS.secondaryDark}
+          style={styles.leadIcon}
         />
+        <Typography variant="body" style={styles.value}>
+          {formatDisplay()}
+        </Typography>
+        <Ionicons name="chevron-down" size={18} color={COLORS.textLight} />
       </TouchableOpacity>
 
       {error && (
@@ -97,15 +101,17 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.tiny,
   },
   trigger: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
+    backgroundColor: COLORS.card,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 8,
-    padding: SPACING.medium,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.medium,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
   },
+  leadIcon: { marginRight: SPACING.small },
+  value: { flex: 1 },
   triggerError: {
     borderColor: COLORS.error,
   },

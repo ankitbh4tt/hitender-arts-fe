@@ -8,9 +8,8 @@ import {
   TextInput as RNTextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING, SHADOWS } from "../constants/theme";
+import { COLORS, SPACING, SHADOWS, RADIUS, FONT_SIZE } from "../constants/theme";
 import { Typography } from "./Typography";
-import { Input } from "./Input";
 
 interface Option {
   id: number | string;
@@ -161,11 +160,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.tiny,
   },
   trigger: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
+    backgroundColor: COLORS.card,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 8,
-    padding: SPACING.medium,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.medium,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -178,15 +178,15 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: COLORS.overlay,
     justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
     maxHeight: "80%",
-    ...SHADOWS.medium,
+    ...SHADOWS.strong,
   },
   modalHeader: {
     flexDirection: "row",
@@ -199,10 +199,10 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     margin: SPACING.medium,
-    borderRadius: 8,
-    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.medium,
   },
@@ -211,8 +211,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    padding: SPACING.medium,
-    fontSize: 16,
+    paddingVertical: SPACING.medium,
+    fontSize: FONT_SIZE.body,
     color: COLORS.text,
   },
   option: {

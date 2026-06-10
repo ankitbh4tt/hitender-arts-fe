@@ -1,25 +1,21 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-} from "react-native";
+import { View, StyleSheet, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING } from "../constants/theme";
+import { COLORS, SPACING, RADIUS, FONT_SIZE } from "../constants/theme";
 import { useConfigStore } from "../config/store";
 import { InquiriesApi } from "../api/inquiries.api";
 import { ClientsApi } from "../api/clients.api";
 import Toast from "react-native-toast-message";
 import { Client, Inquiry as InquiryType, TattooSize, ReferenceType } from "../api/types";
 import {
-  ScreenContainer,
+  FormScreen,
   Typography,
-  Card,
   Input,
   Button,
   SearchableSelect,
+  ClientBanner,
+  PressableScale,
+  FadeInView,
 } from "../components";
 
 export const Inquiry = ({ route, navigation }: any) => {
@@ -29,7 +25,7 @@ export const Inquiry = ({ route, navigation }: any) => {
 
   const [client, setClient] = useState<Client | undefined>(prefillClient);
   const [mobile, setMobile] = useState(prefillClient?.mobile || "");
-  const { config, isLoading } = useConfigStore();
+  const { config } = useConfigStore();
 
   const [tattooSize, setTattooSize] = useState<TattooSize | null>(null);
   const [referenceType, setReferenceType] = useState<ReferenceType | null>(null);
@@ -39,15 +35,11 @@ export const Inquiry = ({ route, navigation }: any) => {
   useEffect(() => {
     if (config) {
       if (latestInquiry?.tattooSizeId && !tattooSize) {
-        const found = config.tattooSizes.find(
-          (s) => s.id === latestInquiry.tattooSizeId
-        );
+        const found = config.tattooSizes.find((s) => s.id === latestInquiry.tattooSizeId);
         if (found) setTattooSize(found);
       }
       if (latestInquiry?.referenceTypeId && !referenceType) {
-        const found = config.referenceTypes.find(
-          (r) => r.id === latestInquiry.referenceTypeId
-        );
+        const found = config.referenceTypes.find((r) => r.id === latestInquiry.referenceTypeId);
         if (found) setReferenceType(found);
       }
     }
@@ -57,8 +49,8 @@ export const Inquiry = ({ route, navigation }: any) => {
   const referenceTypeOptions =
     config?.referenceTypes?.map((r) => ({
       id: r.id,
-      label: r.name, // Use 'name' as 'label'
-      original: r, // Keep reference to original object
+      label: r.name,
+      original: r,
     })) || [];
 
   const handleResolveMobile = async () => {
@@ -66,26 +58,23 @@ export const Inquiry = ({ route, navigation }: any) => {
       try {
         const response = await ClientsApi.resolveClientByMobile(mobile);
         setClient(response.client);
-        
-        // Auto-fill from latest inquiry if available
+
         if (response.latestInquiry) {
-           const latest = response.latestInquiry;
-           setIntent(latest.intent || "");
-           setRemark(latest.remark || "");
-           
-           if (latest.tattooSizeId && config) {
-             const foundSize = config.tattooSizes.find(s => s.id === latest.tattooSizeId);
-             if (foundSize) setTattooSize(foundSize);
-           }
-           
-           if (latest.referenceTypeId && config) {
-             const foundRef = config.referenceTypes.find(r => r.id === latest.referenceTypeId);
-             if (foundRef) setReferenceType(foundRef);
-           }
+          const latest = response.latestInquiry;
+          setIntent(latest.intent || "");
+          setRemark(latest.remark || "");
+
+          if (latest.tattooSizeId && config) {
+            const foundSize = config.tattooSizes.find((s) => s.id === latest.tattooSizeId);
+            if (foundSize) setTattooSize(foundSize);
+          }
+          if (latest.referenceTypeId && config) {
+            const foundRef = config.referenceTypes.find((r) => r.id === latest.referenceTypeId);
+            if (foundRef) setReferenceType(foundRef);
+          }
         }
       } catch (error) {
         console.error("Failed to resolve client", error);
-        // Alert handled globally
       }
     }
   };
@@ -94,12 +83,8 @@ export const Inquiry = ({ route, navigation }: any) => {
     if (!client) {
       await handleResolveMobile();
       if (!client) {
-         Toast.show({
-           type: "error",
-           text1: "Error",
-           text2: "Please resolve a client first",
-         });
-         return;
+        Toast.show({ type: "error", text1: "Error", text2: "Please resolve a client first" });
+        return;
       }
     }
 
@@ -113,14 +98,10 @@ export const Inquiry = ({ route, navigation }: any) => {
 
     try {
       await InquiriesApi.createInquiry(payload);
-      Toast.show({
-        type: "success",
-        text1: "Success",
-        text2: "Inquiry saved successfully",
-      });
+      Toast.show({ type: "success", text1: "Success", text2: "Inquiry saved successfully" });
       navigation.navigate("ClientDetail", { client });
     } catch (error) {
-       // Alert handled globally
+      // Alert handled globally
     }
   };
 
@@ -135,12 +116,8 @@ export const Inquiry = ({ route, navigation }: any) => {
     if (!client) {
       await handleResolveMobile();
       if (!client) {
-          Toast.show({
-            type: "error",
-            text1: "Error",
-            text2: "Please resolve a client first",
-          });
-          return;
+        Toast.show({ type: "error", text1: "Error", text2: "Please resolve a client first" });
+        return;
       }
     }
 
@@ -154,210 +131,150 @@ export const Inquiry = ({ route, navigation }: any) => {
 
     try {
       const response = await InquiriesApi.createInquiry(payload);
-
-      // Navigate to Appointments tab -> ScheduleAppointment
       Toast.show({
         type: "success",
         text1: "Success",
         text2: "Inquiry saved. Proceeding to appointment.",
       });
-      navigation.navigate("ScheduleAppointment", {
-        inquiryId: response.id,
-        client,
-      });
+      navigation.navigate("ScheduleAppointment", { inquiryId: response.id, client });
     } catch (error) {
-       // Alert handled globally
+      // Alert handled globally
     }
   };
 
   return (
-    <ScreenContainer>
-      <ScrollView contentContainerStyle={styles.content}>
+    <FormScreen
+      title={prefillClient ? "New Inquiry" : "New Inquiry"}
+      subtitle="Lead"
+      onBack={() => navigation.goBack()}
+    >
+      <FadeInView>
         {!prefillClient && (
-          <Card style={styles.mobileCard}>
-            <Typography variant="h3" style={styles.sectionTitle}>
+          <>
+            <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
               Client Mobile
             </Typography>
-            <View style={styles.mobileInputRow}>
-              <TextInput
-                style={styles.mobileInput}
-                value={mobile}
-                onChangeText={setMobile}
-                placeholder="Enter mobile number"
-                keyboardType="phone-pad"
-                maxLength={10}
-              />
-              <TouchableOpacity
-                onPress={handleResolveMobile}
-                style={styles.resolveButton}
-              >
-                <Ionicons name="search" size={20} color={COLORS.white} />
-              </TouchableOpacity>
+            <View style={styles.mobileRow}>
+              <View style={styles.mobileField}>
+                <Ionicons name="call-outline" size={FONT_SIZE.body + 2} color={COLORS.textLight} />
+                <TextInput
+                  style={styles.mobileInput}
+                  value={mobile}
+                  onChangeText={setMobile}
+                  placeholder="Enter mobile number"
+                  placeholderTextColor={COLORS.textLight}
+                  keyboardType="phone-pad"
+                  maxLength={10}
+                />
+              </View>
+              <PressableScale onPress={handleResolveMobile} scaleTo={0.92} style={styles.resolveBtn}>
+                <Ionicons name="search" size={FONT_SIZE.body + 4} color={COLORS.primary} />
+              </PressableScale>
             </View>
-          </Card>
+          </>
         )}
 
         {client && (
-          <Card style={styles.clientCard}>
-            <View style={styles.clientHeader}>
-              <View style={styles.clientInfo}>
-                <Typography variant="h3">{client?.name || "Client"}</Typography>
-                <View style={styles.mobileRow}>
-                  <Ionicons
-                    name="call-outline"
-                    size={16}
-                    color={COLORS.textLight}
-                  />
-                  <Typography
-                    variant="body"
-                    color={COLORS.textLight}
-                    style={styles.mobile}
-                  >
-                    {client?.mobile}
-                  </Typography>
-                </View>
-              </View>
-              <Ionicons
-                name="person-circle-outline"
-                size={48}
-                color={COLORS.secondary}
-              />
-            </View>
-          </Card>
+          <ClientBanner name={client?.name} mobile={client?.mobile} icon="person-circle-outline" />
         )}
+      </FadeInView>
 
-        <View style={styles.formSection}>
-          <Typography variant="h3" style={styles.sectionTitle}>
-            Tattoo Details
-          </Typography>
+      <FadeInView index={1}>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Tattoo Details
+        </Typography>
 
-          <SearchableSelect
-            label="Tattoo Size"
-            value={tattooSize}
-            options={config?.tattooSizes || []}
-            onSelect={(item) => setTattooSize(item as TattooSize)}
-            placeholder="Select tattoo size"
-          />
+        <SearchableSelect
+          label="Tattoo Size"
+          value={tattooSize}
+          options={config?.tattooSizes || []}
+          onSelect={(item) => setTattooSize(item as TattooSize)}
+          placeholder="Select tattoo size"
+        />
 
-          <SearchableSelect
-            label="Reference Type"
-            value={
-              referenceType
-                ? { id: referenceType.id, label: referenceType.name }
-                : null
-            }
-            options={referenceTypeOptions}
-            onSelect={(item: any) => setReferenceType(item.original)}
-            placeholder="How did you hear about us?"
-          />
+        <SearchableSelect
+          label="Reference Type"
+          value={referenceType ? { id: referenceType.id, label: referenceType.name } : null}
+          options={referenceTypeOptions}
+          onSelect={(item: any) => setReferenceType(item.original)}
+          placeholder="How did you hear about us?"
+        />
 
-          <Input
-            label="Intent"
-            value={intent}
-            onChangeText={setIntent}
-            placeholder="Tattoo idea or intent"
-          />
+        <Input
+          label="Intent"
+          value={intent}
+          onChangeText={setIntent}
+          placeholder="Tattoo idea or intent"
+          icon="bulb-outline"
+        />
 
-          <Input
-            label="Remarks"
-            value={remark}
-            onChangeText={setRemark}
-            placeholder="Additional notes or discussion points"
-            multiline
-            numberOfLines={4}
-            style={styles.remarksInput}
-          />
-        </View>
+        <Input
+          label="Remarks"
+          value={remark}
+          onChangeText={setRemark}
+          placeholder="Additional notes or discussion points"
+          multiline
+          numberOfLines={4}
+          style={styles.remarksInput}
+        />
+      </FadeInView>
 
-        <View style={styles.actions}>
-          <Button
-            title="Clear Form"
-            onPress={handleClearForm}
-            variant="outline"
-            style={styles.clearButton}
-          />
-          <Button
-            title="Save Inquiry"
-            onPress={handleSaveInquiry}
-            variant="outline"
-            style={styles.actionButton}
-          />
-          <Button
-            title="Save & Set Appointment"
-            onPress={handleSaveAndSetAppointment}
-            style={styles.actionButton}
-          />
-        </View>
-      </ScrollView>
-    </ScreenContainer>
+      <FadeInView index={2} style={styles.actions}>
+        <Button
+          title="Clear Form"
+          onPress={handleClearForm}
+          variant="outline"
+          icon="refresh-outline"
+        />
+        <Button
+          title="Save Inquiry"
+          onPress={handleSaveInquiry}
+          variant="outline"
+          icon="save-outline"
+        />
+        <Button
+          title="Save & Set Appointment"
+          onPress={handleSaveAndSetAppointment}
+          variant="secondary"
+          icon="calendar"
+        />
+        <View style={{ height: SPACING.medium }} />
+      </FadeInView>
+    </FormScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    paddingVertical: SPACING.medium,
-  },
-  mobileCard: {
-    marginBottom: SPACING.large,
-  },
-  mobileInputRow: {
+  section: { marginBottom: SPACING.small, marginTop: SPACING.small },
+  mobileRow: {
     flexDirection: "row",
     gap: SPACING.small,
+    marginBottom: SPACING.large,
+  },
+  mobileField: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.medium,
   },
   mobileInput: {
     flex: 1,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    padding: SPACING.medium,
-    fontSize: 16,
+    paddingVertical: SPACING.medium,
+    marginLeft: SPACING.small,
+    fontSize: FONT_SIZE.body,
     color: COLORS.text,
   },
-  resolveButton: {
+  resolveBtn: {
     backgroundColor: COLORS.secondary,
-    borderRadius: 8,
-    padding: SPACING.medium,
+    borderRadius: RADIUS.md,
     justifyContent: "center",
     alignItems: "center",
-    minWidth: 50,
+    paddingHorizontal: SPACING.medium,
   },
-  clientCard: {
-    marginBottom: SPACING.large,
-  },
-  clientHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  clientInfo: {
-    flex: 1,
-  },
-  mobileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: SPACING.tiny,
-  },
-  mobile: {
-    marginLeft: SPACING.tiny,
-  },
-  formSection: {
-    marginBottom: SPACING.large,
-  },
-  sectionTitle: {
-    marginBottom: SPACING.medium,
-  },
-  remarksInput: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  actions: {
-    gap: SPACING.medium,
-  },
-  actionButton: {
-    marginBottom: SPACING.small,
-  },
-  clearButton: {
-    borderColor: COLORS.textLight,
-  },
+  remarksInput: { height: 100, textAlignVertical: "top" },
+  actions: { gap: SPACING.medium },
 });

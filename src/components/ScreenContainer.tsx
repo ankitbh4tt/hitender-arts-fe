@@ -5,24 +5,44 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  View,
+  StyleProp,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { COLORS, SPACING } from "../constants/theme";
+import { COLORS, SPACING, SCREEN, IS_IOS } from "../constants/theme";
 
 interface ScreenContainerProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  /** Set false to remove the default horizontal padding (e.g. full-bleed lists). */
+  padded?: boolean;
 }
 
-export const ScreenContainer = ({ children, style }: ScreenContainerProps) => {
+export const ScreenContainer = ({
+  children,
+  style,
+  padded = true,
+}: ScreenContainerProps) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right", "bottom"]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={[styles.container, style]}
+        behavior={IS_IOS ? "padding" : undefined}
+        style={styles.flex}
       >
-        {children}
+        {/* Centered, width-capped column keeps tablets readable. */}
+        <View style={styles.centerer}>
+          <View
+            style={[
+              styles.content,
+              padded && styles.padded,
+              { maxWidth: SCREEN.maxContentWidth },
+              style,
+            ]}
+          >
+            {children}
+          </View>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -33,8 +53,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  container: {
+  flex: { flex: 1 },
+  centerer: {
     flex: 1,
+    alignItems: "center",
+  },
+  content: {
+    flex: 1,
+    width: "100%",
+  },
+  padded: {
     paddingHorizontal: SPACING.large,
   },
 });

@@ -1,17 +1,21 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet } from "react-native";
 import Toast from "react-native-toast-message";
-import { COLORS, SPACING } from "../constants/theme";
+import { COLORS, SPACING, RADIUS } from "../constants/theme";
 import {
-  ScreenContainer,
+  FormScreen,
   Typography,
   Input,
   Button,
   DateTimePickerComponent,
+  PressableScale,
+  FadeInView,
 } from "../components";
 import { ClientsApi } from "../api/clients.api";
 import { InquiriesApi } from "../api/inquiries.api";
 import { AppointmentsApi } from "../api/appointments.api";
+
+const DURATION_PRESETS = ["30", "60", "90", "120", "180"];
 
 // One-shot appointment creation: resolves (or creates) the client by mobile,
 // logs an inquiry, then schedules the appointment — reusing existing endpoints.
@@ -84,17 +88,21 @@ export const QuickAddAppointment = ({ navigation }: any) => {
   };
 
   return (
-    <ScreenContainer>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Typography variant="h2" style={styles.title}>
-          New Appointment
+    <FormScreen
+      title="New Appointment"
+      subtitle="Quick Add"
+      onBack={() => navigation.goBack()}
+    >
+      <FadeInView>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Client
         </Typography>
-
         <Input
           label="Client Name"
           value={name}
           onChangeText={setName}
           placeholder="Full name (optional if known)"
+          icon="person-outline"
         />
         <Input
           label="Mobile Number"
@@ -103,6 +111,7 @@ export const QuickAddAppointment = ({ navigation }: any) => {
           placeholder="10-digit mobile"
           keyboardType="phone-pad"
           maxLength={10}
+          icon="call-outline"
         />
         <Input
           label="Tattoo Description"
@@ -113,33 +122,59 @@ export const QuickAddAppointment = ({ navigation }: any) => {
           numberOfLines={3}
           style={styles.multiline}
         />
+      </FadeInView>
 
-        <DateTimePickerComponent
-          label="Date"
-          value={date}
-          onChange={setDate}
-          mode="date"
-        />
-        <DateTimePickerComponent
-          label="Time"
-          value={time}
-          onChange={setTime}
-          mode="time"
-        />
+      <FadeInView index={1}>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Schedule
+        </Typography>
+        <DateTimePickerComponent label="Date" value={date} onChange={setDate} mode="date" />
+        <DateTimePickerComponent label="Time" value={time} onChange={setTime} mode="time" />
 
+        <Typography variant="label" style={styles.fieldLabel}>
+          Estimated Duration
+        </Typography>
+        <View style={styles.chipRow}>
+          {DURATION_PRESETS.map((d) => {
+            const active = duration === d;
+            return (
+              <PressableScale
+                key={d}
+                scaleTo={0.94}
+                onPress={() => setDuration(d)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Typography
+                  variant="label"
+                  color={active ? COLORS.primary : COLORS.textMuted}
+                  weight={active ? "bold" : "medium"}
+                >
+                  {d}m
+                </Typography>
+              </PressableScale>
+            );
+          })}
+        </View>
         <Input
-          label="Estimated Duration (minutes)"
           value={duration}
           onChangeText={setDuration}
-          placeholder="60"
+          placeholder="Custom minutes"
           keyboardType="numeric"
+          icon="hourglass-outline"
         />
+      </FadeInView>
+
+      <FadeInView index={2}>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Payment & Notes
+        </Typography>
         <Input
           label="Advance / Deposit (optional)"
           value={advanceAmount}
           onChangeText={setAdvanceAmount}
           placeholder="Advance amount collected"
           keyboardType="numeric"
+          icon="cash-outline"
         />
         <Input
           label="Notes (optional)"
@@ -151,15 +186,42 @@ export const QuickAddAppointment = ({ navigation }: any) => {
           style={styles.multiline}
         />
 
-        <Button title="Schedule Appointment" onPress={handleCreate} loading={loading} />
-        <View style={{ height: SPACING.large }} />
-      </ScrollView>
-    </ScreenContainer>
+        <Button
+          title="Schedule Appointment"
+          onPress={handleCreate}
+          variant="secondary"
+          icon="calendar"
+          loading={loading}
+        />
+        <View style={{ height: SPACING.medium }} />
+      </FadeInView>
+    </FormScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  content: { paddingVertical: SPACING.medium },
-  title: { marginBottom: SPACING.large },
+  section: {
+    marginBottom: SPACING.small,
+    marginTop: SPACING.small,
+  },
+  fieldLabel: { marginBottom: SPACING.small },
   multiline: { height: 80, textAlignVertical: "top" },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.small,
+    marginBottom: SPACING.medium,
+  },
+  chip: {
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
+  },
+  chipActive: {
+    borderColor: COLORS.secondary,
+    backgroundColor: COLORS.secondaryTint,
+  },
 });

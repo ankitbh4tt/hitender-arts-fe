@@ -1,17 +1,20 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING } from "../constants/theme";
+import { View, StyleSheet } from "react-native";
+import { COLORS, SPACING, RADIUS } from "../constants/theme";
 import Toast from "react-native-toast-message";
 import { AppointmentsApi } from "../api/appointments.api";
 import {
-  ScreenContainer,
+  FormScreen,
   Typography,
-  Card,
   Input,
   Button,
   DateTimePickerComponent,
+  ClientBanner,
+  PressableScale,
+  FadeInView,
 } from "../components";
+
+const DURATION_PRESETS = ["30", "60", "90", "120", "180"];
 
 export const ScheduleAppointment = ({ route, navigation }: any) => {
   const { inquiryId, client } = route.params || {};
@@ -50,18 +53,18 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
 
     setLoading(true);
     try {
-        await AppointmentsApi.createAppointment(payload);
-        Toast.show({
-          type: "success",
-          text1: "Success",
-          text2: "Appointment scheduled successfully",
-        });
-        navigation.navigate("ClientsTab", {
-            screen: "ClientDetail",
-            params: { client },
-        });
+      await AppointmentsApi.createAppointment(payload);
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Appointment scheduled successfully",
+      });
+      navigation.navigate("ClientsTab", {
+        screen: "ClientDetail",
+        params: { client },
+      });
     } catch (error) {
-        // Error handled globally
+      // Error handled globally
     } finally {
       setLoading(false);
     }
@@ -77,147 +80,136 @@ export const ScheduleAppointment = ({ route, navigation }: any) => {
   };
 
   return (
-    <ScreenContainer>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.clientCard}>
-          <View style={styles.clientHeader}>
-            <View style={styles.clientInfo}>
-              <Typography variant="h3">{client?.name || "Client"}</Typography>
-              <View style={styles.mobileRow}>
-                <Ionicons
-                  name="call-outline"
-                  size={16}
-                  color={COLORS.textLight}
-                />
+    <FormScreen
+      title="Schedule Appointment"
+      subtitle="New Booking"
+      onBack={() => navigation.goBack()}
+    >
+      <FadeInView>
+        <ClientBanner name={client?.name} mobile={client?.mobile} icon="calendar" />
+
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Date & Time
+        </Typography>
+        <DateTimePickerComponent
+          label="Appointment Date"
+          value={appointmentDate}
+          onChange={setAppointmentDate}
+          mode="date"
+        />
+        <DateTimePickerComponent
+          label="Appointment Time"
+          value={appointmentTime}
+          onChange={setAppointmentTime}
+          mode="time"
+        />
+
+        <Typography variant="label" style={styles.fieldLabel}>
+          Estimated Duration
+        </Typography>
+        <View style={styles.chipRow}>
+          {DURATION_PRESETS.map((d) => {
+            const active = duration === d;
+            return (
+              <PressableScale
+                key={d}
+                scaleTo={0.94}
+                onPress={() => setDuration(d)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
                 <Typography
-                  variant="body"
-                  color={COLORS.textLight}
-                  style={styles.mobile}
+                  variant="label"
+                  color={active ? COLORS.primary : COLORS.textMuted}
+                  weight={active ? "bold" : "medium"}
                 >
-                  {client?.mobile}
+                  {d}m
                 </Typography>
-              </View>
-            </View>
-            <Ionicons
-              name="calendar-outline"
-              size={48}
-              color={COLORS.secondary}
-            />
-          </View>
-        </Card>
-
-        <View style={styles.formSection}>
-          <Typography variant="h3" style={styles.sectionTitle}>
-            Appointment Details
-          </Typography>
-
-          <DateTimePickerComponent
-            label="Appointment Date"
-            value={appointmentDate}
-            onChange={setAppointmentDate}
-            mode="date"
-          />
-
-          <DateTimePickerComponent
-            label="Appointment Time"
-            value={appointmentTime}
-            onChange={setAppointmentTime}
-            mode="time"
-          />
-
-          <Input
-            label="Estimated Duration (minutes)"
-            value={duration}
-            onChangeText={setDuration}
-            placeholder="60"
-            keyboardType="numeric"
-          />
-
-          <Input
-            label="Advance / Deposit (optional)"
-            value={advanceAmount}
-            onChangeText={setAdvanceAmount}
-            placeholder="Advance amount collected"
-            keyboardType="numeric"
-          />
-
-          <Input
-            label="Tattoo Execution Details"
-            value={tattooDetail}
-            onChangeText={setTattooDetail}
-            placeholder="Final tattoo execution details (optional)"
-            multiline
-            numberOfLines={4}
-            style={styles.detailsInput}
-          />
-
-          <Input
-            label="Notes (optional)"
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Anything to remember for this session"
-            multiline
-            numberOfLines={3}
-            style={styles.detailsInput}
-          />
+              </PressableScale>
+            );
+          })}
         </View>
+        <Input
+          value={duration}
+          onChangeText={setDuration}
+          placeholder="Custom minutes"
+          keyboardType="numeric"
+          icon="hourglass-outline"
+        />
+      </FadeInView>
+
+      <FadeInView index={1}>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Details
+        </Typography>
+        <Input
+          label="Advance / Deposit (optional)"
+          value={advanceAmount}
+          onChangeText={setAdvanceAmount}
+          placeholder="Advance amount collected"
+          keyboardType="numeric"
+          icon="cash-outline"
+        />
+        <Input
+          label="Tattoo Execution Details"
+          value={tattooDetail}
+          onChangeText={setTattooDetail}
+          placeholder="Final tattoo execution details (optional)"
+          multiline
+          numberOfLines={4}
+          style={styles.detailsInput}
+        />
+        <Input
+          label="Notes (optional)"
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="Anything to remember for this session"
+          multiline
+          numberOfLines={3}
+          style={styles.detailsInput}
+        />
 
         <View style={styles.actions}>
           <Button
-            title="Clear Form"
+            title="Clear"
             onPress={handleClearForm}
             variant="outline"
-            style={styles.clearButton}
+            icon="refresh-outline"
           />
           <Button
             title="Confirm Appointment"
             onPress={handleConfirmAppointment}
+            variant="secondary"
+            icon="checkmark-circle-outline"
             loading={loading}
           />
         </View>
-      </ScrollView>
-    </ScreenContainer>
+        <View style={{ height: SPACING.medium }} />
+      </FadeInView>
+    </FormScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    paddingVertical: SPACING.medium,
-  },
-  clientCard: {
-    marginBottom: SPACING.large,
-  },
-  clientHeader: {
+  section: { marginBottom: SPACING.small, marginTop: SPACING.small },
+  fieldLabel: { marginBottom: SPACING.small },
+  detailsInput: { height: 100, textAlignVertical: "top" },
+  actions: { gap: SPACING.medium, marginTop: SPACING.small },
+  chipRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  clientInfo: {
-    flex: 1,
-  },
-  mobileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: SPACING.tiny,
-  },
-  mobile: {
-    marginLeft: SPACING.tiny,
-  },
-  formSection: {
-    marginBottom: SPACING.large,
-  },
-  sectionTitle: {
+    flexWrap: "wrap",
+    gap: SPACING.small,
     marginBottom: SPACING.medium,
   },
-  detailsInput: {
-    height: 100,
-    textAlignVertical: "top",
+  chip: {
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
   },
-  actions: {
-    gap: SPACING.medium,
-    marginBottom: SPACING.large,
-  },
-  clearButton: {
-    borderColor: COLORS.textLight,
+  chipActive: {
+    borderColor: COLORS.secondary,
+    backgroundColor: COLORS.secondaryTint,
   },
 });

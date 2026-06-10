@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
-import { COLORS, SPACING } from "../constants/theme";
-import { ScreenContainer, Typography, Input, Button } from "../components";
+import { COLORS, SPACING, RADIUS } from "../constants/theme";
+import {
+  FormScreen,
+  Typography,
+  Input,
+  Button,
+  Card,
+  FadeInView,
+} from "../components";
 import { useSettingsStore } from "../config/settingsStore";
 import {
   DEFAULT_AFTERCARE_TEMPLATE,
@@ -52,18 +60,26 @@ export const Settings = () => {
     });
   };
 
-  return (
-    <ScreenContainer>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Typography variant="h2" style={styles.title}>
-          Studio Settings
-        </Typography>
+  const Placeholder = ({ text }: { text: string }) => (
+    <View style={styles.chip}>
+      <Typography variant="overline" color={COLORS.secondaryDark}>
+        {text}
+      </Typography>
+    </View>
+  );
 
+  return (
+    <FormScreen title="Studio Settings" subtitle="Preferences" headerVariant="dark">
+      <FadeInView>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Studio
+        </Typography>
         <Input
           label="Studio Name"
           value={studioName}
           onChangeText={setStudioName}
           placeholder="Hitender Arts"
+          icon="business-outline"
         />
         <Input
           label="Studio WhatsApp Number"
@@ -71,6 +87,7 @@ export const Settings = () => {
           onChangeText={setWhatsappNumber}
           placeholder="10-digit number"
           keyboardType="phone-pad"
+          icon="logo-whatsapp"
         />
         <Input
           label="Logo URL (optional)"
@@ -78,24 +95,28 @@ export const Settings = () => {
           onChangeText={setLogoUrl}
           placeholder="https://..."
           autoCapitalize="none"
+          icon="image-outline"
         />
+      </FadeInView>
 
-        <View style={styles.help}>
-          <Typography variant="caption" color={COLORS.textLight}>
-            Templates support placeholders:{" "}
-            <Typography variant="caption" color={COLORS.primary}>
-              {"{{clientName}}"}
+      <FadeInView index={1}>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          Message Templates
+        </Typography>
+
+        <Card variant="flat" style={styles.help}>
+          <View style={styles.helpHeader}>
+            <Ionicons name="information-circle-outline" size={18} color={COLORS.secondaryDark} />
+            <Typography variant="label" color={COLORS.textMuted} style={{ marginLeft: 6 }}>
+              Available placeholders
             </Typography>
-            ,{" "}
-            <Typography variant="caption" color={COLORS.primary}>
-              {"{{followUpType}}"}
-            </Typography>
-            ,{" "}
-            <Typography variant="caption" color={COLORS.primary}>
-              {"{{studioName}}"}
-            </Typography>
-          </Typography>
-        </View>
+          </View>
+          <View style={styles.chipRow}>
+            <Placeholder text="{{clientName}}" />
+            <Placeholder text="{{followUpType}}" />
+            <Placeholder text="{{studioName}}" />
+          </View>
+        </Card>
 
         <Input
           label="Follow-Up Reminder Template"
@@ -116,23 +137,44 @@ export const Settings = () => {
           style={styles.multiline}
         />
 
-        <Button title="Save Settings" onPress={handleSave} loading={saving} />
+        <Button
+          title="Save Settings"
+          onPress={handleSave}
+          variant="secondary"
+          icon="checkmark-circle-outline"
+          loading={saving}
+        />
         <View style={{ height: SPACING.large }} />
-      </ScrollView>
-    </ScreenContainer>
+      </FadeInView>
+    </FormScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  content: { paddingVertical: SPACING.medium },
-  title: { marginBottom: SPACING.large },
+  section: {
+    marginBottom: SPACING.small,
+    marginTop: SPACING.small,
+  },
   help: {
-    backgroundColor: COLORS.card,
-    borderRadius: 8,
+    backgroundColor: COLORS.secondaryTint,
+    borderColor: "transparent",
     padding: SPACING.medium,
-    marginBottom: SPACING.medium,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  },
+  helpHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SPACING.small,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.small,
+  },
+  chip: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 4,
   },
   multiline: { height: 120, textAlignVertical: "top" },
 });

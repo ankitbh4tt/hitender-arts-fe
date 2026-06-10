@@ -1,19 +1,22 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, SPACING } from "../constants/theme";
+import { COLORS, SPACING, RADIUS } from "../constants/theme";
 import { AppointmentsApi } from "../api/appointments.api";
 import {
-  ScreenContainer,
+  FormScreen,
   Typography,
-  Card,
   Button,
   Input,
   DateTimePickerComponent,
+  ClientBanner,
+  PressableScale,
+  FadeInView,
 } from "../components";
 
 import { Appointment } from "../api/types";
 
+const DURATION_PRESETS = ["30", "60", "90", "120", "180"];
 
 export const RescheduleAppointment = ({ route, navigation }: any) => {
   const { appointment }: { appointment: Appointment } = route.params || {};
@@ -46,163 +49,131 @@ export const RescheduleAppointment = ({ route, navigation }: any) => {
       );
 
       Alert.alert("Success", "Appointment rescheduled successfully", [
-        {
-          text: "OK",
-          onPress: () => navigation.goBack(),
-        },
+        { text: "OK", onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to reschedule appointment");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   const formatDateTime = (isoString: string) => {
-    // ... same ...
     const date = new Date(isoString);
     return date.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
   };
 
   return (
-    <ScreenContainer>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Card style={styles.clientCard}>
-          <View style={styles.clientHeader}>
-            <View style={styles.clientInfo}>
-              <Typography variant="h3">{appointment.client?.name || "Unknown Client"}</Typography>
-              <View style={styles.mobileRow}>
-                <Ionicons
-                  name="call-outline"
-                  size={16}
-                  color={COLORS.textLight}
-                />
-                <Typography
-                  variant="body"
-                  color={COLORS.textLight}
-                  style={styles.mobile}
-                >
-                  {appointment.client?.mobile || "No Mobile"}
-                </Typography>
-              </View>
-            </View>
-            <Ionicons
-              name="calendar-outline"
-              size={48}
-              color={COLORS.secondary}
-            />
+    <FormScreen
+      title="Reschedule"
+      subtitle="Change Time"
+      onBack={() => navigation.goBack()}
+    >
+      <FadeInView>
+        <ClientBanner
+          name={appointment.client?.name}
+          mobile={appointment.client?.mobile}
+          icon="calendar"
+        />
+
+        <View style={styles.currentCard}>
+          <Ionicons name="time-outline" size={18} color={COLORS.textMuted} />
+          <View style={{ marginLeft: SPACING.small, flex: 1 }}>
+            <Typography variant="caption" color={COLORS.textLight}>
+              Currently scheduled
+            </Typography>
+            <Typography variant="body" weight="semibold">
+              {formatDateTime(appointment.appointmentAt)}
+            </Typography>
           </View>
-        </Card>
-
-        <View style={styles.currentSection}>
-          <Typography variant="h3" style={styles.sectionTitle}>
-            Current Appointment
-          </Typography>
-          <Card style={styles.currentCard}>
-            <View style={styles.detailRow}>
-              <Ionicons
-                name="time-outline"
-                size={20}
-                color={COLORS.textLight}
-              />
-              <Typography variant="body" style={styles.detailText}>
-                {formatDateTime(appointment.appointmentAt)}
-              </Typography>
-            </View>
-          </Card>
         </View>
 
-        <View style={styles.formSection}>
-          <Typography variant="h3" style={styles.sectionTitle}>
-            New Appointment Time
-          </Typography>
+        <Typography variant="overline" color={COLORS.textLight} style={styles.section}>
+          New Time
+        </Typography>
+        <DateTimePickerComponent label="New Date" value={newDate} onChange={setNewDate} mode="date" />
+        <DateTimePickerComponent label="New Time" value={newTime} onChange={setNewTime} mode="time" />
 
-          <DateTimePickerComponent
-            label="New Date"
-            value={newDate}
-            onChange={setNewDate}
-            mode="date"
-          />
-
-          <DateTimePickerComponent
-            label="New Time"
-            value={newTime}
-            onChange={setNewTime}
-            mode="time"
-          />
-
-          <Input
-            label="Estimated Duration (minutes)"
-            value={duration}
-            onChangeText={setDuration}
-            placeholder="60"
-            keyboardType="numeric"
-          />
+        <Typography variant="label" style={styles.fieldLabel}>
+          Estimated Duration
+        </Typography>
+        <View style={styles.chipRow}>
+          {DURATION_PRESETS.map((d) => {
+            const active = duration === d;
+            return (
+              <PressableScale
+                key={d}
+                scaleTo={0.94}
+                onPress={() => setDuration(d)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Typography
+                  variant="label"
+                  color={active ? COLORS.primary : COLORS.textMuted}
+                  weight={active ? "bold" : "medium"}
+                >
+                  {d}m
+                </Typography>
+              </PressableScale>
+            );
+          })}
         </View>
+        <Input
+          value={duration}
+          onChangeText={setDuration}
+          placeholder="Custom minutes"
+          keyboardType="numeric"
+          icon="hourglass-outline"
+        />
 
-        <View style={styles.actions}>
-          <Button
-            title="Confirm Reschedule"
-            onPress={handleConfirmReschedule}
-            loading={loading}
-            disabled={loading}
-          />
-        </View>
-      </ScrollView>
-    </ScreenContainer>
+        <Button
+          title="Confirm Reschedule"
+          onPress={handleConfirmReschedule}
+          variant="secondary"
+          icon="swap-horizontal-outline"
+          loading={loading}
+          disabled={loading}
+        />
+        <View style={{ height: SPACING.medium }} />
+      </FadeInView>
+    </FormScreen>
   );
 };
 
 const styles = StyleSheet.create({
-  content: {
-    paddingVertical: SPACING.medium,
-  },
-  clientCard: {
-    marginBottom: SPACING.large,
-  },
-  clientHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  clientInfo: {
-    flex: 1,
-  },
-  mobileRow: {
+  section: { marginBottom: SPACING.small, marginTop: SPACING.small },
+  fieldLabel: { marginBottom: SPACING.small },
+  currentCard: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: SPACING.tiny,
+    backgroundColor: COLORS.backgroundAlt,
+    borderRadius: RADIUS.md,
+    padding: SPACING.medium,
+    marginBottom: SPACING.small,
   },
-  mobile: {
-    marginLeft: SPACING.tiny,
-  },
-  currentSection: {
-    marginBottom: SPACING.large,
-  },
-  sectionTitle: {
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: SPACING.small,
     marginBottom: SPACING.medium,
   },
-  currentCard: {
-    backgroundColor: COLORS.background,
+  chip: {
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.card,
   },
-  detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  detailText: {
-    marginLeft: SPACING.small,
-  },
-  formSection: {
-    marginBottom: SPACING.large,
-  },
-  actions: {
-    marginBottom: SPACING.large,
+  chipActive: {
+    borderColor: COLORS.secondary,
+    backgroundColor: COLORS.secondaryTint,
   },
 });

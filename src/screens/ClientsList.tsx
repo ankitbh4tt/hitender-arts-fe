@@ -3,17 +3,22 @@ import {
   View,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ScreenContainer, Typography, Card, Input } from "../components";
-import { COLORS, SPACING } from "../constants/theme";
+import {
+  Typography,
+  Card,
+  Input,
+  Header,
+  FAB,
+  EmptyState,
+  FadeInView,
+} from "../components";
+import { COLORS, SPACING, RADIUS, SCREEN, scale } from "../constants/theme";
 import { ClientsApi } from "../api/clients.api";
 import { Client } from "../api/types";
-
-// ... imports
 
 export const ClientsList = ({ navigation }: any) => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -56,7 +61,7 @@ export const ClientsList = ({ navigation }: any) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    setSearchQuery(""); // Reset search on refresh
+    setSearchQuery("");
     fetchClients();
   };
 
@@ -68,60 +73,55 @@ export const ClientsList = ({ navigation }: any) => {
     navigation.navigate("Inquiry", { client: null });
   };
 
-  const renderClient = ({ item }: { item: Client }) => (
-    <TouchableOpacity
-      onPress={() => handleClientPress(item)}
-      activeOpacity={0.7}
-    >
-      <Card key={item.id} style={styles.clientCard}>
-        <View style={styles.clientHeader}>
+  const renderClient = ({ item, index }: { item: Client; index: number }) => (
+    <FadeInView index={Math.min(index, 8)}>
+      <Card style={styles.clientCard} onPress={() => handleClientPress(item)}>
+        <View style={styles.clientRow}>
+          <View style={styles.avatar}>
+            <Typography variant="h3" color={COLORS.secondaryDark} weight="bold">
+              {(item.name || "U").trim()[0]?.toUpperCase() || "U"}
+            </Typography>
+          </View>
           <View style={styles.clientInfo}>
-            <Typography variant="h3">{item.name || "Unknown"}</Typography>
+            <Typography variant="h3" numberOfLines={1}>
+              {item.name || "Unknown"}
+            </Typography>
             <View style={styles.mobileRow}>
-              <Ionicons
-                name="call-outline"
-                size={14}
-                color={COLORS.textLight}
-              />
-              <Typography variant="caption" style={styles.mobile}>
+              <Ionicons name="call-outline" size={scale(13)} color={COLORS.textLight} />
+              <Typography variant="caption" color={COLORS.textMuted} style={styles.mobile}>
                 {item.mobile}
               </Typography>
             </View>
           </View>
-          <View
-            style={[styles.statusBadge, { backgroundColor: COLORS.secondary }]}
-          >
-            <Typography variant="caption" color={COLORS.white}>
-              {item.currentStatus?.label || "Unknown"}
+          <View style={styles.statusBadge}>
+            <Typography variant="overline" color={COLORS.secondaryDark}>
+              {item.currentStatus?.label || "—"}
             </Typography>
           </View>
+          <Ionicons name="chevron-forward" size={scale(18)} color={COLORS.textLight} />
         </View>
       </Card>
-    </TouchableOpacity>
+    </FadeInView>
   );
 
   return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <Typography variant="h2">Clients</Typography>
-        <Typography variant="caption" color={COLORS.textLight}>
-          {clients.length} total clients
-        </Typography>
-      </View>
+    <View style={styles.root}>
+      <Header title="Clients" subtitle={`${clients.length} total`} />
 
-      <View style={styles.searchContainer}>
+      <View style={styles.searchWrap}>
         <Input
-          placeholder="Search by mobile number (10 digits)"
+          placeholder="Search by mobile (10 digits)"
           value={searchQuery}
           onChangeText={handleSearch}
           keyboardType="phone-pad"
           maxLength={10}
-          style={styles.searchInput}
+          icon="search"
+          containerStyle={styles.searchInput}
         />
       </View>
 
       {loading && !refreshing ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={COLORS.secondary} />
         </View>
       ) : (
@@ -130,98 +130,72 @@ export const ClientsList = ({ navigation }: any) => {
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderClient}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.secondary}
+              colors={[COLORS.secondary]}
+            />
           }
           ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={80} color={COLORS.border} />
-              <Typography variant="h3" style={styles.emptyTitle}>
-                {searchQuery.length === 10 ? "Client Not Found" : "No Clients"}
-              </Typography>
-              {searchQuery.length === 10 && (
-                 <Typography variant="body" color={COLORS.textLight}>
-                    No client found with mobile: {searchQuery}
-                 </Typography>
-              )}
-            </View>
+            <EmptyState
+              icon="people-outline"
+              title={searchQuery.length === 10 ? "No client found" : "No clients yet"}
+              subtitle={
+                searchQuery.length === 10
+                  ? `Nobody with mobile ${searchQuery}`
+                  : "Tap + to log a new inquiry"
+              }
+            />
           }
         />
       )}
 
-      <TouchableOpacity style={styles.fab} onPress={handleAddInquiry}>
-        <Ionicons name="add" size={28} color={COLORS.white} />
-      </TouchableOpacity>
-    </ScreenContainer>
+      <FAB onPress={handleAddInquiry} />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: SPACING.medium,
+  root: { flex: 1, backgroundColor: COLORS.background },
+  searchWrap: {
+    paddingHorizontal: SPACING.large,
+    paddingTop: SPACING.medium,
+    width: "100%",
+    maxWidth: SCREEN.maxContentWidth,
+    alignSelf: "center",
   },
-  searchContainer: {
-    marginBottom: SPACING.medium,
-  },
-  searchInput: {
-    backgroundColor: COLORS.white,
-  },
+  searchInput: { marginBottom: SPACING.small },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   listContent: {
-    paddingBottom: SPACING.large,
+    paddingHorizontal: SPACING.large,
+    paddingTop: SPACING.small,
+    paddingBottom: scale(96),
+    width: "100%",
+    maxWidth: SCREEN.maxContentWidth,
+    alignSelf: "center",
   },
-  clientCard: {
-    marginBottom: SPACING.medium,
-  },
-  clientHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  clientInfo: {
-    flex: 1,
-  },
-  mobileRow: {
-    flexDirection: "row",
+  clientCard: { marginBottom: SPACING.medium },
+  clientRow: { flexDirection: "row", alignItems: "center" },
+  avatar: {
+    width: scale(44),
+    height: scale(44),
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.secondaryTint,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: SPACING.tiny,
+    marginRight: SPACING.medium,
   },
-  mobile: {
-    marginLeft: SPACING.tiny,
-  },
+  clientInfo: { flex: 1 },
+  mobileRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
+  mobile: { marginLeft: 4 },
   statusBadge: {
+    backgroundColor: COLORS.secondaryTint,
     paddingHorizontal: SPACING.small,
     paddingVertical: 4,
-    borderRadius: 4,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: SPACING.xxlarge,
-  },
-  emptyTitle: {
-    marginTop: SPACING.medium,
-    marginBottom: SPACING.small,
-  },
-  fab: {
-    position: "absolute",
-    right: SPACING.large,
-    bottom: SPACING.large,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.secondary,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    borderRadius: RADIUS.pill,
+    marginRight: SPACING.small,
   },
 });

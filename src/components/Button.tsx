@@ -1,84 +1,133 @@
 import React from "react";
 import {
-  TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
+  View,
+  StyleProp,
 } from "react-native";
-import { COLORS, SPACING } from "../constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOWS, moderateScale } from "../constants/theme";
 import { Typography } from "./Typography";
+import { PressableScale } from "./PressableScale";
+
+type Variant = "primary" | "secondary" | "outline" | "ghost" | "danger";
+type Size = "sm" | "md" | "lg";
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+  variant?: Variant;
+  size?: Size;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  icon?: keyof typeof Ionicons.glyphMap;
+  style?: StyleProp<ViewStyle>;
+  fullWidth?: boolean;
 }
+
+const HEIGHTS: Record<Size, number> = {
+  sm: moderateScale(40),
+  md: moderateScale(50),
+  lg: moderateScale(56),
+};
 
 export const Button = ({
   title,
   onPress,
   variant = "primary",
+  size = "md",
   loading = false,
   disabled = false,
+  icon,
   style,
+  fullWidth = true,
 }: ButtonProps) => {
-  const getBackgroundColor = () => {
-    if (disabled) return COLORS.border;
-    if (variant === "primary") return COLORS.primary;
-    if (variant === "secondary") return COLORS.secondary;
-    return "transparent";
+  const isDisabled = disabled || loading;
+
+  const bg = () => {
+    if (isDisabled) return COLORS.backgroundAlt;
+    switch (variant) {
+      case "primary":
+        return COLORS.primary;
+      case "secondary":
+        return COLORS.secondary;
+      case "danger":
+        return COLORS.error;
+      default:
+        return COLORS.transparent;
+    }
   };
 
-  const getTextColor = () => {
-    if (disabled) return COLORS.textLight;
-    if (variant === "primary" || variant === "secondary") return COLORS.white;
-    if (variant === "outline") return COLORS.primary;
-    return COLORS.primary;
+  const fg = () => {
+    if (isDisabled) return COLORS.textLight;
+    switch (variant) {
+      case "primary":
+      case "danger":
+        return COLORS.white;
+      case "secondary":
+        return COLORS.primary; // dark text on gold reads as premium
+      case "outline":
+        return COLORS.primary;
+      case "ghost":
+        return COLORS.secondaryDark;
+      default:
+        return COLORS.primary;
+    }
   };
+
+  const isOutline = variant === "outline";
+  const elevated = !isDisabled && (variant === "primary" || variant === "danger");
+  const golden = !isDisabled && variant === "secondary";
 
   return (
-    <TouchableOpacity
+    <PressableScale
+      onPress={onPress}
+      disabled={isDisabled}
+      accessibilityRole="button"
       style={[
-        styles.container,
-        {
-          backgroundColor: getBackgroundColor(),
-          borderWidth: variant === "outline" ? 1 : 0,
-          borderColor: variant === "outline" ? COLORS.primary : "transparent",
-        },
+        styles.base,
+        { height: HEIGHTS[size], backgroundColor: bg() },
+        fullWidth && styles.fullWidth,
+        isOutline && styles.outline,
+        elevated && SHADOWS.light,
+        golden && SHADOWS.gold,
         style,
       ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator color={getTextColor()} />
+        <ActivityIndicator color={fg()} />
       ) : (
-        <Typography
-          variant="label"
-          style={{
-            color: getTextColor(),
-            fontSize: 16,
-            fontWeight: "600",
-          }}
-        >
-          {title}
-        </Typography>
+        <View style={styles.row}>
+          {icon ? (
+            <Ionicons
+              name={icon}
+              size={FONT_SIZE.body + 2}
+              color={fg()}
+              style={styles.icon}
+            />
+          ) : null}
+          <Typography variant="body" weight="semibold" color={fg()}>
+            {title}
+          </Typography>
+        </View>
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    height: 48,
-    borderRadius: 8,
+  base: {
+    borderRadius: RADIUS.md,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: SPACING.large,
-    width: "100%",
   },
+  fullWidth: { width: "100%" },
+  outline: {
+    borderWidth: 1.5,
+    borderColor: COLORS.borderStrong,
+  },
+  row: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  icon: { marginRight: SPACING.small },
 });

@@ -15,22 +15,42 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { COLORS, SPACING } from "../constants/theme";
+import {
+  COLORS,
+  SPACING,
+  RADIUS,
+  scale,
+  statusVisual,
+  HIT_SLOP,
+} from "../constants/theme";
 import { Client, Inquiry, Appointment } from "../api/types";
 import { InquiriesApi } from "../api/inquiries.api";
 import { AppointmentsApi } from "../api/appointments.api";
 import { ClientsApi } from "../api/clients.api";
-import { Typography, Input, Button } from "../components";
+import {
+  Typography,
+  Input,
+  Button,
+  StatusBadge,
+  SegmentedControl,
+  FAB,
+  PressableScale,
+  EmptyState,
+} from "../components";
 import { fillTemplate, formatCurrency, openWhatsApp } from "../utils";
 import { useSettingsStore } from "../config/settingsStore";
 
-const GOLD = "#F6C200";
-const GOLD_DARK = "#E2A900";
-const HEADER_MAX = 200;
-const HEADER_MIN = 64;
+const HEADER_MAX = scale(190);
+const HEADER_MIN = scale(64);
 const SCROLL_RANGE = HEADER_MAX - HEADER_MIN;
 
 type TabKey = "activity" | "appointments" | "details";
+
+const TABS = [
+  { key: "activity", label: "Activity" },
+  { key: "appointments", label: "Appointments" },
+  { key: "details", label: "Details" },
+];
 
 interface TimelineItem {
   id: string;
@@ -205,7 +225,6 @@ export const ClientDetail = ({ route, navigation }: any) => {
         amount: Number(completeAmount),
         completionNotes: completeNotes.trim() || undefined,
       });
-      // Healing follow-ups (3/15/30-day) are auto-created by the backend.
       Alert.alert(
         "Completed",
         "Appointment marked complete. Healing follow-ups have been scheduled."
@@ -264,16 +283,6 @@ export const ClientDetail = ({ route, navigation }: any) => {
     return items;
   }, [inquiries, appointments]);
 
-  const statusColor = (code?: string) => {
-    switch (code) {
-      case "SCHEDULED": return "#1976D2";
-      case "COMPLETED": return "#2E7D32";
-      case "CANCELLED": return "#D32F2F";
-      case "NO_SHOW": return "#F57C00";
-      default: return COLORS.textLight;
-    }
-  };
-
   const fmtDate = (s: string) => new Date(s).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   const fmtTime = (s: string) => new Date(s).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 
@@ -290,62 +299,57 @@ export const ClientDetail = ({ route, navigation }: any) => {
   // ── RENDER ──
   return (
     <View style={s.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={GOLD} />
-      <SafeAreaView style={{ backgroundColor: GOLD }} edges={["top"]} />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <SafeAreaView style={{ backgroundColor: COLORS.primary }} edges={["top"]} />
 
       {/* Collapsible Header */}
       <Animated.View style={[s.header, { height: headerHeight }]}>
         <View style={s.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.hBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => { setClientName(client.name || ""); setClientGender(client.gender || ""); setClientLocation(client.location || ""); setEditModalVisible(true); }} style={s.hBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="pencil-outline" size={20} color="#FFF" />
-          </TouchableOpacity>
+          <PressableScale onPress={() => navigation.goBack()} style={s.hBtn} hitSlop={HIT_SLOP}>
+            <Ionicons name="arrow-back" size={scale(22)} color={COLORS.white} />
+          </PressableScale>
+          <PressableScale
+            onPress={() => {
+              setClientName(client.name || "");
+              setClientGender(client.gender || "");
+              setClientLocation(client.location || "");
+              setEditModalVisible(true);
+            }}
+            style={s.hBtn}
+            hitSlop={HIT_SLOP}
+          >
+            <Ionicons name="pencil" size={scale(18)} color={COLORS.white} />
+          </PressableScale>
         </View>
         <Animated.View style={[s.avatarWrap, { transform: [{ scale: avatarScale }], opacity: expandedOpacity }]}>
           <View style={s.avatar}>
-            <Typography variant="h2" color="#FFF" style={{ fontWeight: "700" }}>{(client.name || "U")[0].toUpperCase()}</Typography>
+            <Typography variant="h2" color={COLORS.secondary} weight="bold">{(client.name || "U")[0].toUpperCase()}</Typography>
           </View>
         </Animated.View>
         <Animated.View style={{ opacity: expandedOpacity, alignItems: "center" }}>
-          <Typography variant="h3" color="#FFF" align="center" style={{ fontWeight: "600" }}>{client.name || "Unknown"}</Typography>
+          <Typography variant="h3" color={COLORS.white} align="center" weight="semibold">{client.name || "Unknown"}</Typography>
           <View style={s.metaRow}>
-            {client.gender ? <View style={s.metaItem}><Ionicons name="person-outline" size={13} color="rgba(255,255,255,0.8)" /><Typography variant="caption" color="rgba(255,255,255,0.8)" style={{ marginLeft: 3 }}>{client.gender}</Typography></View> : null}
-            {client.location ? <View style={s.metaItem}><Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.8)" /><Typography variant="caption" color="rgba(255,255,255,0.8)" style={{ marginLeft: 3 }}>{client.location}</Typography></View> : null}
+            {client.gender ? <View style={s.metaItem}><Ionicons name="person-outline" size={scale(13)} color={COLORS.secondaryLight} /><Typography variant="caption" color="rgba(255,255,255,0.85)" style={{ marginLeft: 3 }}>{client.gender}</Typography></View> : null}
+            {client.location ? <View style={s.metaItem}><Ionicons name="location-outline" size={scale(13)} color={COLORS.secondaryLight} /><Typography variant="caption" color="rgba(255,255,255,0.85)" style={{ marginLeft: 3 }}>{client.location}</Typography></View> : null}
           </View>
         </Animated.View>
       </Animated.View>
 
       {/* Sticky Quick Actions */}
       <View style={s.qBar}>
-        <TouchableOpacity style={s.qBtn} onPress={handleCall}>
-          <View style={[s.qIcon, { backgroundColor: "#E8F5E9" }]}><Ionicons name="call" size={22} color="#2E7D32" /></View>
-          <Typography variant="caption" color={COLORS.text} style={s.qLabel}>Call</Typography>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.qBtn} onPress={handleWhatsApp}>
-          <View style={[s.qIcon, { backgroundColor: "#E8F5E9" }]}><Ionicons name="logo-whatsapp" size={22} color="#25D366" /></View>
-          <Typography variant="caption" color={COLORS.text} style={s.qLabel}>WhatsApp</Typography>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.qBtn} onPress={navToSchedule}>
-          <View style={[s.qIcon, { backgroundColor: "#E3F2FD" }]}><Ionicons name="calendar" size={22} color="#1565C0" /></View>
-          <Typography variant="caption" color={COLORS.text} style={s.qLabel}>Schedule</Typography>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.qBtn} onPress={navToInquiry}>
-          <View style={[s.qIcon, { backgroundColor: "#F3E5F5" }]}><Ionicons name="document-text" size={22} color="#6A1B9A" /></View>
-          <Typography variant="caption" color={COLORS.text} style={s.qLabel}>Inquiry</Typography>
-        </TouchableOpacity>
+        <QuickAction icon="call" tint={COLORS.successTint} color={COLORS.success} label="Call" onPress={handleCall} />
+        <QuickAction icon="logo-whatsapp" tint="rgba(37,211,102,0.12)" color={COLORS.whatsapp} label="WhatsApp" onPress={handleWhatsApp} />
+        <QuickAction icon="calendar" tint={COLORS.infoTint} color={COLORS.info} label="Schedule" onPress={navToSchedule} />
+        <QuickAction icon="document-text" tint={COLORS.secondaryTint} color={COLORS.secondaryDark} label="Inquiry" onPress={navToInquiry} />
       </View>
 
-      {/* Tab Bar */}
-      <View style={s.tabBar}>
-        {(["activity", "appointments", "details"] as TabKey[]).map((t) => (
-          <TouchableOpacity key={t} style={[s.tab, activeTab === t && s.tabActive]} onPress={() => setActiveTab(t)}>
-            <Typography variant="body" color={activeTab === t ? GOLD_DARK : COLORS.textLight} style={activeTab === t ? { fontWeight: "600" } : undefined}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </Typography>
-          </TouchableOpacity>
-        ))}
+      {/* Tabs */}
+      <View style={s.tabWrap}>
+        <SegmentedControl
+          segments={TABS}
+          value={activeTab}
+          onChange={(k) => setActiveTab(k as TabKey)}
+        />
       </View>
 
       {/* Content */}
@@ -353,17 +357,17 @@ export const ClientDetail = ({ route, navigation }: any) => {
         style={s.scroll}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
         scrollEventThrottle={16}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[GOLD]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.secondary} colors={[COLORS.secondary]} />}
         showsVerticalScrollIndicator={false}
       >
         {loading && !refreshing ? (
-          <View style={s.center}><ActivityIndicator size="large" color={GOLD} /></View>
+          <View style={s.center}><ActivityIndicator size="large" color={COLORS.secondary} /></View>
         ) : (
           <>
             {/* Activity Tab */}
             {activeTab === "activity" && (
               timelineData.length === 0 ? (
-                <View style={s.center}><Ionicons name="time-outline" size={48} color={COLORS.border} /><Typography variant="body" color={COLORS.textLight} style={{ marginTop: 12 }}>No activity yet</Typography></View>
+                <EmptyState icon="time-outline" title="No activity yet" subtitle="Inquiries and appointments show up here" />
               ) : (
                 <View style={s.tlWrap}>
                   {timelineData.map((item, idx) => {
@@ -373,21 +377,21 @@ export const ClientDetail = ({ route, navigation }: any) => {
                       return (
                         <View key={item.id} style={s.tlItem}>
                           <View style={s.tlGutter}>
-                            <View style={[s.tlDot, { backgroundColor: GOLD }]}><Ionicons name="chatbubble-outline" size={11} color="#FFF" /></View>
+                            <View style={[s.tlDot, { backgroundColor: COLORS.secondary }]}><Ionicons name="chatbubble-ellipses" size={scale(11)} color={COLORS.primary} /></View>
                             {!isLast && <View style={s.tlLine} />}
                           </View>
                           <View style={s.tlContent}>
                             <Typography variant="caption" color={COLORS.textLight}>{fmtDate(inq.createdAt)}</Typography>
-                            {inq.intent ? <Typography variant="body" numberOfLines={2} style={{ fontWeight: "500", marginTop: 2 }}>{inq.intent}</Typography> : null}
+                            {inq.intent ? <Typography variant="body" weight="medium" numberOfLines={2} style={{ marginTop: 2 }}>{inq.intent}</Typography> : null}
                             {inq.remark ? <Typography variant="caption" color={COLORS.textLight} numberOfLines={2} style={{ marginTop: 2 }}>{inq.remark}</Typography> : null}
                             <View style={s.chipRow}>
-                              {inq.referenceType ? <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{inq.referenceType.name}</Typography></View> : null}
-                              {inq.tattooSize ? <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{inq.tattooSize.label}</Typography></View> : null}
+                              {inq.referenceType ? <View style={s.chip}><Typography variant="overline" color={COLORS.secondaryDark}>{inq.referenceType.name}</Typography></View> : null}
+                              {inq.tattooSize ? <View style={s.chip}><Typography variant="overline" color={COLORS.secondaryDark}>{inq.tattooSize.label}</Typography></View> : null}
                             </View>
-                            <TouchableOpacity style={s.tlAction} onPress={() => navigation.navigate("ScheduleAppointment", { inquiryId: inq.id, client })}>
-                              <Ionicons name="calendar-outline" size={14} color="#1565C0" />
-                              <Typography variant="caption" color="#1565C0" style={{ marginLeft: 4 }}>Schedule</Typography>
-                            </TouchableOpacity>
+                            <PressableScale style={s.tlAction} scaleTo={0.96} onPress={() => navigation.navigate("ScheduleAppointment", { inquiryId: inq.id, client })}>
+                              <Ionicons name="calendar-outline" size={scale(14)} color={COLORS.info} />
+                              <Typography variant="label" color={COLORS.info} style={{ marginLeft: 4 }}>Schedule</Typography>
+                            </PressableScale>
                           </View>
                         </View>
                       );
@@ -396,21 +400,19 @@ export const ClientDetail = ({ route, navigation }: any) => {
                       return (
                         <View key={item.id} style={s.tlItem}>
                           <View style={s.tlGutter}>
-                            <View style={[s.tlDot, { backgroundColor: "#1565C0" }]}><Ionicons name="calendar-outline" size={11} color="#FFF" /></View>
+                            <View style={[s.tlDot, { backgroundColor: COLORS.info }]}><Ionicons name="calendar" size={scale(11)} color={COLORS.white} /></View>
                             {!isLast && <View style={s.tlLine} />}
                           </View>
                           <View style={s.tlContent}>
                             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
                               <Typography variant="caption" color={COLORS.textLight}>{fmtDate(apt.appointmentAt)} {fmtTime(apt.appointmentAt)}</Typography>
-                              <View style={[s.badge, { backgroundColor: statusColor(apt.appointmentStatus?.code) + "20" }]}>
-                                <Typography variant="caption" color={statusColor(apt.appointmentStatus?.code)}>{apt.appointmentStatus?.label || "Unknown"}</Typography>
-                              </View>
+                              <StatusBadge code={apt.appointmentStatus?.code} label={apt.appointmentStatus?.label} />
                             </View>
-                            {apt.tattooDetail ? <Typography variant="body" numberOfLines={1} style={{ fontWeight: "500", marginTop: 2 }}>{apt.tattooDetail}</Typography> : null}
+                            {apt.tattooDetail ? <Typography variant="body" weight="medium" numberOfLines={1} style={{ marginTop: 2 }}>{apt.tattooDetail}</Typography> : null}
                             {apt.appointmentStatus?.code === "COMPLETED" && apt.paymentMethod && apt.amount && (
                               <View style={s.chipRow}>
-                                <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{formatCurrency(apt.amount)}</Typography></View>
-                                <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{apt.paymentMethod}</Typography></View>
+                                <View style={s.chip}><Typography variant="overline" color={COLORS.secondaryDark}>{formatCurrency(apt.amount)}</Typography></View>
+                                <View style={s.chip}><Typography variant="overline" color={COLORS.secondaryDark}>{apt.paymentMethod}</Typography></View>
                               </View>
                             )}
                           </View>
@@ -425,39 +427,39 @@ export const ClientDetail = ({ route, navigation }: any) => {
             {/* Appointments Tab */}
             {activeTab === "appointments" && (
               appointments.length === 0 ? (
-                <View style={s.center}><Ionicons name="calendar-outline" size={48} color={COLORS.border} /><Typography variant="body" color={COLORS.textLight} style={{ marginTop: 12 }}>No appointments</Typography></View>
+                <EmptyState icon="calendar-outline" title="No appointments" subtitle="Schedule one from the actions above" />
               ) : (
-                <View>
+                <View style={s.agWrap}>
                   {appointments.map((apt) => {
                     const d = new Date(apt.appointmentAt);
                     const sc = apt.appointmentStatus?.code;
                     return (
-                      <View key={apt.id} style={s.agRow}>
+                      <View key={apt.id} style={s.agCard}>
                         <View style={s.agDate}>
-                          <Typography variant="h3" align="center">{d.getDate()}</Typography>
-                          <Typography variant="caption" color={COLORS.textLight} align="center">{d.toLocaleDateString("en-IN", { month: "short" })}</Typography>
+                          <Typography variant="h3" align="center" color={COLORS.secondaryDark}>{d.getDate()}</Typography>
+                          <Typography variant="overline" color={COLORS.textLight} align="center">{d.toLocaleDateString("en-IN", { month: "short" })}</Typography>
                         </View>
                         <View style={s.agInfo}>
-                          <Typography variant="body">{fmtTime(apt.appointmentAt)} · {apt.durationMinutes || 60} min</Typography>
+                          <Typography variant="body" weight="semibold">{fmtTime(apt.appointmentAt)} · {apt.durationMinutes || 60} min</Typography>
                           {apt.tattooDetail ? <Typography variant="caption" color={COLORS.textLight} numberOfLines={1}>{apt.tattooDetail}</Typography> : null}
                           {sc === "COMPLETED" && apt.completionNotes ? <Typography variant="caption" color={COLORS.textLight} numberOfLines={2}>📝 {apt.completionNotes}</Typography> : null}
                           {sc === "COMPLETED" && apt.paymentMethod && apt.amount && (
                             <View style={[s.chipRow, { marginTop: 4 }]}>
-                              <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{formatCurrency(apt.amount)}</Typography></View>
-                              <View style={s.chip}><Typography variant="caption" color={GOLD_DARK}>{apt.paymentMethod}</Typography></View>
+                              <View style={s.chip}><Typography variant="overline" color={COLORS.secondaryDark}>{formatCurrency(apt.amount)}</Typography></View>
+                              <View style={s.chip}><Typography variant="overline" color={COLORS.secondaryDark}>{apt.paymentMethod}</Typography></View>
                             </View>
                           )}
                           {sc === "SCHEDULED" && (
                             <View style={s.agActions}>
-                              <TouchableOpacity onPress={() => handleReschedule(apt)} disabled={processingId !== null} style={s.agActBtn}><Typography variant="caption" color={processingId !== null ? COLORS.textLight : "#1565C0"}>Reschedule</Typography></TouchableOpacity>
-                              <TouchableOpacity onPress={() => handleCompletePress(apt.id)} disabled={processingId === apt.id} style={s.agActBtn}><Typography variant="caption" color={processingId === apt.id ? COLORS.textLight : "#2E7D32"}>Complete</Typography></TouchableOpacity>
-                              <TouchableOpacity onPress={() => handleNoShow(apt.id)} disabled={processingId === apt.id} style={s.agActBtn}><Typography variant="caption" color={processingId === apt.id ? COLORS.textLight : "#F57C00"}>No Show</Typography></TouchableOpacity>
-                              <TouchableOpacity onPress={() => handleCancel(apt.id)} disabled={processingId === apt.id} style={s.agActBtn}><Typography variant="caption" color={processingId === apt.id ? COLORS.textLight : "#D32F2F"}>Cancel</Typography></TouchableOpacity>
+                              <PressableScale onPress={() => handleCompletePress(apt.id)} disabled={processingId === apt.id} style={[s.agBtn, s.agBtnPrimary]} scaleTo={0.95}><Typography variant="label" color={COLORS.primary}>Complete</Typography></PressableScale>
+                              <PressableScale onPress={() => handleReschedule(apt)} disabled={processingId !== null} style={s.agBtn} scaleTo={0.95}><Typography variant="label" color={COLORS.info}>Reschedule</Typography></PressableScale>
+                              <PressableScale onPress={() => handleNoShow(apt.id)} disabled={processingId === apt.id} style={s.agBtn} scaleTo={0.95}><Typography variant="label" color={COLORS.warning}>No Show</Typography></PressableScale>
+                              <PressableScale onPress={() => handleCancel(apt.id)} disabled={processingId === apt.id} style={s.agBtn} scaleTo={0.95}><Typography variant="label" color={COLORS.error}>Cancel</Typography></PressableScale>
                             </View>
                           )}
                         </View>
-                        <View style={[s.badge, { backgroundColor: statusColor(sc) + "20" }]}>
-                          <Typography variant="caption" color={statusColor(sc)}>{apt.appointmentStatus?.label || "Unknown"}</Typography>
+                        <View style={s.agBadge}>
+                          <StatusBadge code={sc} label={apt.appointmentStatus?.label} />
                         </View>
                       </View>
                     );
@@ -469,63 +471,47 @@ export const ClientDetail = ({ route, navigation }: any) => {
             {/* Details Tab */}
             {activeTab === "details" && (
               <View style={s.detList}>
-                <TouchableOpacity style={s.detRow} onPress={handleCall}>
-                  <Ionicons name="call-outline" size={20} color={COLORS.textLight} />
-                  <View style={s.detContent}><Typography variant="caption" color={COLORS.textLight}>Phone</Typography><Typography variant="body">{client.mobile}</Typography></View>
-                  <Ionicons name="chevron-forward" size={18} color={COLORS.textLight} />
-                </TouchableOpacity>
-                <View style={s.detDiv} />
-                <View style={s.detRow}>
-                  <Ionicons name="person-outline" size={20} color={COLORS.textLight} />
-                  <View style={s.detContent}><Typography variant="caption" color={COLORS.textLight}>Gender</Typography><Typography variant="body">{client.gender || "Not set"}</Typography></View>
-                </View>
-                <View style={s.detDiv} />
-                <View style={s.detRow}>
-                  <Ionicons name="location-outline" size={20} color={COLORS.textLight} />
-                  <View style={s.detContent}><Typography variant="caption" color={COLORS.textLight}>City</Typography><Typography variant="body">{client.location || "Not set"}</Typography></View>
-                </View>
+                <DetailRow icon="call-outline" label="Phone" value={client.mobile} onPress={handleCall} />
+                <DetailRow icon="person-outline" label="Gender" value={client.gender || "Not set"} />
+                <DetailRow icon="location-outline" label="City" value={client.location || "Not set"} />
               </View>
             )}
           </>
         )}
-        <View style={{ height: 80 }} />
+        <View style={{ height: scale(96) }} />
       </Animated.ScrollView>
 
       {/* FAB */}
-      <TouchableOpacity style={s.fab} onPress={() => setQuickAddVisible(true)} activeOpacity={0.85}>
-        <Ionicons name="add" size={28} color="#FFF" />
-      </TouchableOpacity>
+      <FAB icon="add" onPress={() => setQuickAddVisible(true)} />
 
       {/* Edit Client Modal */}
       <Modal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => setEditModalVisible(false)}>
         <View style={s.mOverlay}>
           <View style={s.mSheet}>
-            <View style={s.mHeader}><Typography variant="h3">Edit Client</Typography><TouchableOpacity onPress={() => setEditModalVisible(false)}><Ionicons name="close" size={28} color={COLORS.text} /></TouchableOpacity></View>
-            <Input label="Name" value={clientName} onChangeText={setClientName} placeholder="Client Name" />
-            <TouchableOpacity style={s.gPicker} onPress={() => setGenderModalVisible(true)}>
-              <Typography variant="caption" color={COLORS.textLight} style={{ marginBottom: 4 }}>Gender</Typography>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="body" color={clientGender ? COLORS.text : COLORS.textLight}>{clientGender || "Select"}</Typography>
-                <Ionicons name="chevron-down" size={20} color={COLORS.textLight} />
-              </View>
-            </TouchableOpacity>
-            <Input label="Location" value={clientLocation} onChangeText={setClientLocation} placeholder="City" />
+            <View style={s.mHandle} />
+            <View style={s.mHeader}><Typography variant="h3">Edit Client</Typography><TouchableOpacity onPress={() => setEditModalVisible(false)} hitSlop={HIT_SLOP}><Ionicons name="close" size={scale(24)} color={COLORS.text} /></TouchableOpacity></View>
+            <Input label="Name" value={clientName} onChangeText={setClientName} placeholder="Client Name" icon="person-outline" />
+            <Typography variant="label" style={{ marginBottom: SPACING.tiny }}>Gender</Typography>
+            <PressableScale style={s.gPicker} scaleTo={0.99} onPress={() => setGenderModalVisible(true)}>
+              <Typography variant="body" color={clientGender ? COLORS.text : COLORS.textLight}>{clientGender || "Select"}</Typography>
+              <Ionicons name="chevron-down" size={scale(20)} color={COLORS.textLight} />
+            </PressableScale>
+            <Input label="Location" value={clientLocation} onChangeText={setClientLocation} placeholder="City" icon="location-outline" />
             <View style={s.mActions}>
-              <TouchableOpacity style={s.mCancel} onPress={() => setEditModalVisible(false)} disabled={savingClientInfo}><Typography variant="body" color={COLORS.error}>Cancel</Typography></TouchableOpacity>
-              <TouchableOpacity style={s.mSave} onPress={handleSaveClientInfo} disabled={savingClientInfo}>
-                {savingClientInfo ? <ActivityIndicator size="small" color="#FFF" /> : <Typography variant="body" color="#FFF">Save</Typography>}
-              </TouchableOpacity>
+              <Button title="Cancel" variant="outline" onPress={() => setEditModalVisible(false)} disabled={savingClientInfo} style={{ flex: 1, marginRight: SPACING.small }} />
+              <Button title="Save" variant="secondary" onPress={handleSaveClientInfo} loading={savingClientInfo} style={{ flex: 1 }} />
             </View>
           </View>
         </View>
         <Modal visible={genderModalVisible} transparent animationType="slide" onRequestClose={() => setGenderModalVisible(false)}>
           <View style={s.mOverlay}>
             <View style={s.mSheet}>
-              <View style={s.mHeader}><Typography variant="h3">Select Gender</Typography><TouchableOpacity onPress={() => setGenderModalVisible(false)}><Ionicons name="close" size={28} color={COLORS.text} /></TouchableOpacity></View>
+              <View style={s.mHandle} />
+              <View style={s.mHeader}><Typography variant="h3">Select Gender</Typography><TouchableOpacity onPress={() => setGenderModalVisible(false)} hitSlop={HIT_SLOP}><Ionicons name="close" size={scale(24)} color={COLORS.text} /></TouchableOpacity></View>
               {genderOptions.map((g) => (
                 <TouchableOpacity key={g} style={[s.gOpt, clientGender === g && s.gOptSel]} onPress={() => handleGenderSelect(g)}>
-                  <Typography variant="body" color={clientGender === g ? GOLD_DARK : COLORS.text}>{g}</Typography>
-                  {clientGender === g && <Ionicons name="checkmark" size={24} color={GOLD_DARK} />}
+                  <Typography variant="body" color={clientGender === g ? COLORS.secondaryDark : COLORS.text} weight={clientGender === g ? "semibold" : "regular"}>{g}</Typography>
+                  {clientGender === g && <Ionicons name="checkmark" size={scale(22)} color={COLORS.secondaryDark} />}
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={s.gOpt} onPress={() => handleGenderSelect("")}><Typography variant="body" color={COLORS.textLight}>Clear</Typography></TouchableOpacity>
@@ -538,19 +524,10 @@ export const ClientDetail = ({ route, navigation }: any) => {
       <Modal visible={quickAddVisible} transparent animationType="slide" onRequestClose={() => setQuickAddVisible(false)}>
         <TouchableOpacity style={s.mOverlay} activeOpacity={1} onPress={() => setQuickAddVisible(false)}>
           <View style={s.qaSheet}>
-            <View style={s.qaHandle} />
-            <TouchableOpacity style={s.qaOpt} onPress={() => { setQuickAddVisible(false); navToInquiry(); }}>
-              <Ionicons name="document-text-outline" size={24} color="#6A1B9A" />
-              <Typography variant="body" style={{ marginLeft: 16 }}>Add Inquiry</Typography>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.qaOpt} onPress={() => { setQuickAddVisible(false); navToSchedule(); }}>
-              <Ionicons name="calendar-outline" size={24} color="#1565C0" />
-              <Typography variant="body" style={{ marginLeft: 16 }}>Schedule Appointment</Typography>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.qaOpt} onPress={() => { setQuickAddVisible(false); sendAftercare(); }}>
-              <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-              <Typography variant="body" style={{ marginLeft: 16 }}>Send Aftercare (WhatsApp)</Typography>
-            </TouchableOpacity>
+            <View style={s.mHandle} />
+            <SheetOption icon="document-text-outline" color={COLORS.secondaryDark} label="Add Inquiry" onPress={() => { setQuickAddVisible(false); navToInquiry(); }} />
+            <SheetOption icon="calendar-outline" color={COLORS.info} label="Schedule Appointment" onPress={() => { setQuickAddVisible(false); navToSchedule(); }} />
+            <SheetOption icon="logo-whatsapp" color={COLORS.whatsapp} label="Send Aftercare (WhatsApp)" onPress={() => { setQuickAddVisible(false); sendAftercare(); }} last />
           </View>
         </TouchableOpacity>
       </Modal>
@@ -560,42 +537,28 @@ export const ClientDetail = ({ route, navigation }: any) => {
         <View style={StyleSheet.absoluteFill}>
           <View style={s.cOverlay}>
             <View style={s.cModalContent}>
+              <View style={s.mHandle} />
               <Typography variant="h3" style={{ marginBottom: SPACING.medium }}>Complete Appointment</Typography>
-              
-              <Input
-                label="Amount"
-                value={completeAmount}
-                onChangeText={setCompleteAmount}
-                keyboardType="numeric"
-                placeholder="Enter amount"
-              />
 
-              <Typography variant="caption" color={COLORS.textLight} style={{ marginBottom: SPACING.small }}>Payment Method</Typography>
+              <Input label="Amount" value={completeAmount} onChangeText={setCompleteAmount} keyboardType="numeric" placeholder="Enter amount" icon="cash-outline" />
+
+              <Typography variant="label" style={{ marginBottom: SPACING.small }}>Payment Method</Typography>
               <View style={s.cPaymentGroup}>
-                {(["CASH", "ONLINE", "CARD"] as const).map((method) => (
-                  <TouchableOpacity
-                    key={method}
-                    style={[s.cPaymentBtn, completeMethod === method && s.cPaymentBtnActive]}
-                    onPress={() => setCompleteMethod(method)}
-                  >
-                    <Typography variant="caption" color={completeMethod === method ? COLORS.primary : COLORS.text}>{method}</Typography>
-                  </TouchableOpacity>
-                ))}
+                {(["CASH", "ONLINE", "CARD"] as const).map((m) => {
+                  const active = completeMethod === m;
+                  return (
+                    <PressableScale key={m} scaleTo={0.94} style={[s.cPaymentBtn, active && s.cPaymentBtnActive]} onPress={() => setCompleteMethod(m)}>
+                      <Typography variant="label" color={active ? COLORS.primary : COLORS.textMuted} weight={active ? "bold" : "medium"}>{m}</Typography>
+                    </PressableScale>
+                  );
+                })}
               </View>
 
-              <Input
-                label="Completion Notes (optional)"
-                value={completeNotes}
-                onChangeText={setCompleteNotes}
-                placeholder="Healing notes, touch-up needed, etc."
-                multiline
-                numberOfLines={3}
-                style={{ height: 70, textAlignVertical: "top" }}
-              />
+              <Input label="Completion Notes (optional)" value={completeNotes} onChangeText={setCompleteNotes} placeholder="Healing notes, touch-up needed, etc." multiline numberOfLines={3} style={{ height: scale(70), textAlignVertical: "top" }} />
 
               <View style={s.cModalActions}>
                 <Button title="Cancel" variant="outline" onPress={() => setCompleteModalVisible(false)} style={{ flex: 1, marginRight: SPACING.small }} />
-                <Button title="Confirm" onPress={submitCompleteAppointment} loading={completing} style={{ flex: 1 }} />
+                <Button title="Confirm" variant="secondary" onPress={submitCompleteAppointment} loading={completing} style={{ flex: 1 }} />
               </View>
             </View>
           </View>
@@ -605,83 +568,109 @@ export const ClientDetail = ({ route, navigation }: any) => {
   );
 };
 
+// ── Small presentational helpers ──
+const QuickAction = ({ icon, tint, color, label, onPress }: any) => (
+  <PressableScale style={s.qBtn} scaleTo={0.92} onPress={onPress}>
+    <View style={[s.qIcon, { backgroundColor: tint }]}><Ionicons name={icon} size={scale(21)} color={color} /></View>
+    <Typography variant="overline" color={COLORS.textMuted} style={s.qLabel}>{label}</Typography>
+  </PressableScale>
+);
+
+const DetailRow = ({ icon, label, value, onPress }: any) => {
+  const Wrap: any = onPress ? PressableScale : View;
+  const wrapProps = onPress ? { onPress, scaleTo: 0.99 } : {};
+  return (
+    <Wrap style={s.detRow} {...wrapProps}>
+      <View style={s.detIcon}><Ionicons name={icon} size={scale(18)} color={COLORS.secondaryDark} /></View>
+      <View style={s.detContent}>
+        <Typography variant="caption" color={COLORS.textLight}>{label}</Typography>
+        <Typography variant="body">{value}</Typography>
+      </View>
+      {onPress ? <Ionicons name="chevron-forward" size={scale(18)} color={COLORS.textLight} /> : null}
+    </Wrap>
+  );
+};
+
+const SheetOption = ({ icon, color, label, onPress, last }: any) => (
+  <PressableScale style={[s.qaOpt, last && { borderBottomWidth: 0 }]} scaleTo={0.98} onPress={onPress}>
+    <View style={[s.qaIcon, { backgroundColor: `${color}1A` }]}><Ionicons name={icon} size={scale(20)} color={color} /></View>
+    <Typography variant="body" weight="medium" style={{ marginLeft: SPACING.medium }}>{label}</Typography>
+  </PressableScale>
+);
+
 // ── STYLES ──
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#FFF" },
+  root: { flex: 1, backgroundColor: COLORS.background },
 
   // Header
-  header: { backgroundColor: GOLD, paddingHorizontal: 16, overflow: "hidden" },
-  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", height: 44 },
-  hBtn: { width: 40, height: 40, justifyContent: "center", alignItems: "center" },
+  header: { backgroundColor: COLORS.primary, paddingHorizontal: SPACING.medium, overflow: "hidden" },
+  headerTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", height: scale(44) },
+  hBtn: { width: scale(40), height: scale(40), borderRadius: RADIUS.md, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,255,255,0.08)" },
   avatarWrap: { alignItems: "center", marginBottom: 6 },
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(0,0,0,0.15)", justifyContent: "center", alignItems: "center" },
-  metaRow: { flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 4, marginBottom: 4 },
+  avatar: { width: scale(60), height: scale(60), borderRadius: RADIUS.pill, backgroundColor: "rgba(212,175,55,0.16)", borderWidth: 1.5, borderColor: COLORS.secondary, justifyContent: "center", alignItems: "center" },
+  metaRow: { flexDirection: "row", justifyContent: "center", gap: SPACING.medium, marginTop: 4, marginBottom: 4 },
   metaItem: { flexDirection: "row", alignItems: "center" },
 
   // Quick Actions
-  qBar: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 10, paddingHorizontal: 8, backgroundColor: "#FFF", borderBottomWidth: 1, borderBottomColor: "#E0E0E0" },
-  qBtn: { alignItems: "center", flex: 1, minHeight: 48 },
-  qIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center", marginBottom: 4 },
-  qLabel: { fontSize: 11 },
+  qBar: { flexDirection: "row", justifyContent: "space-around", paddingVertical: SPACING.small, paddingHorizontal: SPACING.small, backgroundColor: COLORS.card, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  qBtn: { alignItems: "center", flex: 1 },
+  qIcon: { width: scale(44), height: scale(44), borderRadius: RADIUS.pill, justifyContent: "center", alignItems: "center", marginBottom: 4 },
+  qLabel: {},
 
   // Tabs
-  tabBar: { flexDirection: "row", backgroundColor: "#FFF", borderBottomWidth: 1, borderBottomColor: "#E0E0E0" },
-  tab: { flex: 1, alignItems: "center", paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabActive: { borderBottomColor: GOLD },
+  tabWrap: { paddingHorizontal: SPACING.medium, paddingVertical: SPACING.small, backgroundColor: COLORS.card, borderBottomWidth: 1, borderBottomColor: COLORS.border },
 
   // Scroll / Content
-  scroll: { flex: 1, backgroundColor: "#FAFAFA" },
-  center: { alignItems: "center", paddingVertical: 48 },
+  scroll: { flex: 1, backgroundColor: COLORS.background },
+  center: { alignItems: "center", paddingVertical: SPACING.xxlarge },
 
   // Timeline
-  tlWrap: { paddingHorizontal: 16, paddingTop: 16 },
-  tlItem: { flexDirection: "row", minHeight: 72 },
-  tlGutter: { width: 28, alignItems: "center" },
-  tlDot: { width: 22, height: 22, borderRadius: 11, justifyContent: "center", alignItems: "center", zIndex: 1 },
-  tlLine: { width: 2, flex: 1, backgroundColor: "#E0E0E0", marginTop: -1 },
-  tlContent: { flex: 1, paddingLeft: 12, paddingBottom: 20 },
+  tlWrap: { paddingHorizontal: SPACING.medium, paddingTop: SPACING.medium },
+  tlItem: { flexDirection: "row", minHeight: scale(70) },
+  tlGutter: { width: scale(28), alignItems: "center" },
+  tlDot: { width: scale(22), height: scale(22), borderRadius: RADIUS.pill, justifyContent: "center", alignItems: "center", zIndex: 1 },
+  tlLine: { width: 2, flex: 1, backgroundColor: COLORS.border, marginTop: -1 },
+  tlContent: { flex: 1, paddingLeft: SPACING.small, paddingBottom: SPACING.large },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
-  chip: { backgroundColor: GOLD + "20", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  tlAction: { flexDirection: "row", alignItems: "center", marginTop: 6, paddingVertical: 4 },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
+  chip: { backgroundColor: COLORS.secondaryTint, paddingHorizontal: SPACING.small, paddingVertical: 3, borderRadius: RADIUS.pill },
+  tlAction: { flexDirection: "row", alignItems: "center", marginTop: 6, paddingVertical: 4, alignSelf: "flex-start" },
 
-  // Appointments Agenda
-  agRow: { flexDirection: "row", alignItems: "flex-start", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E0E0E0", backgroundColor: "#FFF", minHeight: 72 },
-  agDate: { width: 44, marginRight: 12, alignItems: "center" },
-  agInfo: { flex: 1, marginRight: 8 },
-  agActions: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 6 },
-  agActBtn: { paddingVertical: 4 },
+  // Appointments
+  agWrap: { padding: SPACING.medium },
+  agCard: { flexDirection: "row", alignItems: "flex-start", padding: SPACING.medium, marginBottom: SPACING.medium, backgroundColor: COLORS.card, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border, ...{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 } },
+  agDate: { width: scale(46), marginRight: SPACING.medium, alignItems: "center", backgroundColor: COLORS.secondaryTint, borderRadius: RADIUS.md, paddingVertical: SPACING.small },
+  agInfo: { flex: 1 },
+  agActions: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.small, marginTop: SPACING.small },
+  agBtn: { paddingHorizontal: SPACING.small, paddingVertical: 5, borderRadius: RADIUS.sm, backgroundColor: COLORS.backgroundAlt },
+  agBtnPrimary: { backgroundColor: COLORS.secondaryTint },
+  agBadge: { marginLeft: SPACING.small },
 
   // Details
-  detList: { paddingHorizontal: 16, paddingTop: 12 },
-  detRow: { flexDirection: "row", alignItems: "center", minHeight: 48, paddingVertical: 8, gap: 12 },
+  detList: { padding: SPACING.medium },
+  detRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.medium, paddingHorizontal: SPACING.medium, backgroundColor: COLORS.card, borderRadius: RADIUS.md, marginBottom: SPACING.small, borderWidth: 1, borderColor: COLORS.border, gap: SPACING.medium },
+  detIcon: { width: scale(38), height: scale(38), borderRadius: RADIUS.md, backgroundColor: COLORS.secondaryTint, justifyContent: "center", alignItems: "center" },
   detContent: { flex: 1 },
-  detDiv: { height: 1, backgroundColor: "#E0E0E0", marginLeft: 32 },
-
-  // FAB
-  fab: { position: "absolute", bottom: 24, right: 16, width: 56, height: 56, borderRadius: 28, backgroundColor: GOLD, justifyContent: "center", alignItems: "center", elevation: 6, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 4 },
 
   // Modals
-  mOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  mSheet: { backgroundColor: "#FFF", borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 24, maxHeight: "80%" },
-  mHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  mActions: { flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 16 },
-  mCancel: { paddingVertical: 10, paddingHorizontal: 16 },
-  mSave: { backgroundColor: GOLD_DARK, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
-  gPicker: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 12, backgroundColor: COLORS.background },
-  gOpt: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F0F0F0" },
-  gOptSel: { backgroundColor: GOLD + "10" },
+  mOverlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: "flex-end" },
+  mSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, padding: SPACING.large, maxHeight: "85%" },
+  mHandle: { width: scale(40), height: 4, borderRadius: 2, backgroundColor: COLORS.border, alignSelf: "center", marginBottom: SPACING.medium },
+  mHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.medium },
+  mActions: { flexDirection: "row", marginTop: SPACING.medium },
+  gPicker: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1.5, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingVertical: SPACING.medium, paddingHorizontal: SPACING.medium, marginBottom: SPACING.medium, backgroundColor: COLORS.card },
+  gOpt: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: SPACING.medium, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  gOptSel: { },
 
   // Quick Add
-  qaSheet: { backgroundColor: "#FFF", borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingHorizontal: 24, paddingBottom: 32, paddingTop: 12 },
-  qaHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: "#DDD", alignSelf: "center", marginBottom: 16 },
-  qaOpt: { flexDirection: "row", alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "#F0F0F0" },
+  qaSheet: { backgroundColor: COLORS.card, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl, paddingHorizontal: SPACING.large, paddingBottom: SPACING.xlarge, paddingTop: SPACING.medium },
+  qaOpt: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.medium, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  qaIcon: { width: scale(40), height: scale(40), borderRadius: RADIUS.md, justifyContent: "center", alignItems: "center" },
 
   // Completion Modal
-  cOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100 },
-  cModalContent: { backgroundColor: COLORS.white, padding: SPACING.large, borderRadius: SPACING.small, width: "90%" },
-  cPaymentGroup: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.large },
-  cPaymentBtn: { flex: 1, paddingVertical: SPACING.small, borderWidth: 1, borderColor: COLORS.border, borderRadius: SPACING.small, alignItems: "center", marginHorizontal: SPACING.tiny },
-  cPaymentBtnActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}10` },
-  cModalActions: { flexDirection: "row", justifyContent: "space-between" },
+  cOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.overlay, justifyContent: "center", alignItems: "center", padding: SPACING.large, zIndex: 100 },
+  cModalContent: { backgroundColor: COLORS.card, padding: SPACING.large, borderRadius: RADIUS.xl, width: "100%", maxWidth: 460 },
+  cPaymentGroup: { flexDirection: "row", gap: SPACING.small, marginBottom: SPACING.medium },
+  cPaymentBtn: { flex: 1, paddingVertical: SPACING.small + 2, borderWidth: 1.5, borderColor: COLORS.border, borderRadius: RADIUS.md, alignItems: "center", backgroundColor: COLORS.card },
+  cPaymentBtnActive: { borderColor: COLORS.secondary, backgroundColor: COLORS.secondaryTint },
+  cModalActions: { flexDirection: "row", marginTop: SPACING.small },
 });

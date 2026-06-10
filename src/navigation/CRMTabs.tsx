@@ -3,7 +3,8 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "../constants/theme";
+import { Platform } from "react-native";
+import { COLORS, SPACING } from "../constants/theme";
 
 // Screens
 import { DayCalendar } from "../screens/DayCalendar";
@@ -64,11 +65,19 @@ export const CRMTabs = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.secondary,
+        tabBarActiveTintColor: COLORS.secondaryDark,
         tabBarInactiveTintColor: COLORS.textLight,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+        },
         tabBarStyle: {
           backgroundColor: COLORS.card,
           borderTopColor: COLORS.border,
+          borderTopWidth: 1,
+          height: Platform.OS === "ios" ? 84 : 64,
+          paddingTop: SPACING.small,
+          paddingBottom: Platform.OS === "ios" ? SPACING.large : SPACING.small,
         },
       }}
     >
@@ -77,8 +86,8 @@ export const CRMTabs = () => {
         component={TodayNavigator}
         options={{
           tabBarLabel: "Today",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "calendar" : "calendar-outline"} size={size} color={color} />
           ),
         }}
         listeners={({ navigation }) => ({
@@ -99,8 +108,8 @@ export const CRMTabs = () => {
         component={ClientsNavigator}
         options={{
           tabBarLabel: "Clients",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "people" : "people-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -109,8 +118,8 @@ export const CRMTabs = () => {
         component={FollowUpsNavigator}
         options={{
           tabBarLabel: "Follow-Ups",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="heart-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "heart" : "heart-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -119,8 +128,8 @@ export const CRMTabs = () => {
         component={SettingsNavigator}
         options={{
           tabBarLabel: "Settings",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? "settings" : "settings-outline"} size={size} color={color} />
           ),
         }}
       />
